@@ -24,8 +24,8 @@ import java.util.stream.Stream;
 
 /** Test the allowed variable usage */
 public class TestCicsAllowedVariableUsage {
-  public static final String TEXT =
-      "       Identification Division.\n"
+  public static final String TEXT = ""
+          + "       Identification Division.\n"
           + "       Program-id. HELLOT.\n"
           + "\n"
           + "       Data Division.\n"
@@ -144,6 +144,7 @@ public class TestCicsAllowedVariableUsage {
             "COMMAREA",
             "COMMONNAME",
             "COMMONNAMLEN",
+            "COMPAT",
             "COMPAREMAX",
             "COMPAREMIN",
             "COMPLETE",
@@ -207,11 +208,10 @@ public class TestCicsAllowedVariableUsage {
             "DESTID",
             "DESTIDLENG",
             "DETAILLENGTH",
-            "DFHRESP",
-            "DFHVALUE",
             "DIGEST",
             "DIGESTTYPE",
             "DISCONNECT",
+            "DLL",
             "DOCDELETE",
             "DOCSIZE",
             "DOCSTATUS",
@@ -237,6 +237,8 @@ public class TestCicsAllowedVariableUsage {
             "ENDOUTPUT",
             "ENQ",
             "ENTRYNAME",
+            "ENTRY-NAME",
+            "ENTRY-INTERFACE",
             "EOC",
             "EODS",
             "EPRFIELD",
@@ -380,6 +382,8 @@ public class TestCicsAllowedVariableUsage {
             "LOGMODE",
             "LOGONLOGMODE",
             "LOGONMSG",
+            "LONGUPPER",
+            "LONGMIXED",
             "LOW_VALUE",
             "LOW_VALUES",
             "LUNAME",
@@ -650,6 +654,7 @@ public class TestCicsAllowedVariableUsage {
             "STARTCODE",
             "STATE",
             "STATELEN",
+            "STATIC",
             "STATIONID",
             "STATUSCODE",
             "STATUSLEN",

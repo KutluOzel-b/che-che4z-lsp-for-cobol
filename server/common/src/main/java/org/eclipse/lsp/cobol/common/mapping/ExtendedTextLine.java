@@ -35,7 +35,7 @@ public class ExtendedTextLine {
     for (int i = 0; i < line.length(); i++) {
       char character = line.charAt(i);
       checkCharacter(character);
-      characters.add(new MappedCharacter(character, null, uri, this, instantLocation, new HashMap<>()));
+      characters.add(new MappedCharacter(character, null, uri, this, instantLocation, null));
     }
   }
 
@@ -43,12 +43,12 @@ public class ExtendedTextLine {
     this(line, new Position(lineNumber, 0), uri);
   }
 
-  ExtendedTextLine(String line, Position start, String uri) {
+  public ExtendedTextLine(String line, Position start, String uri) {
     for (int i = 0; i < line.length(); i++) {
       char character = line.charAt(i);
       checkCharacter(character);
       Position position = new Position(start.getLine(), start.getCharacter() + i);
-      characters.add(new MappedCharacter(character, position, uri, this, null, new HashMap<>()));
+      characters.add(new MappedCharacter(character, position, uri, this, null, null));
     }
   }
 
@@ -127,7 +127,7 @@ public class ExtendedTextLine {
    * Appends the line with given line
    * @param line - line that will be added to the end of this line
    */
-  void append(ExtendedTextLine line) {
+  public void append(ExtendedTextLine line) {
     characters.addAll(line.characters);
     characters.forEach(c -> c.setParent(this));
   }
@@ -149,6 +149,24 @@ public class ExtendedTextLine {
   }
 
   /**
+   * Fill area
+   * @param start - start position
+   * @param end - end position
+   * @param c - character to fill the area with
+   */
+  void fillArea(int start, int end, char c) {
+    characters.subList(start, Math.min(end + 1, characters.size())).forEach(l -> l.setCharacter(c));
+  }
+
+  /**
+   * Fill line
+   * @param c - character to fill the area with
+   */
+  void fillLine(char c) {
+    fillArea(0, size() - 1, c);
+  }
+
+  /**
    * Creates a shadow copy of the line object
    * @return a line object
    */
@@ -165,7 +183,7 @@ public class ExtendedTextLine {
    */
   void addPadding(int character) {
     for (int i = 0; i < character; i++) {
-      characters.add(0, new MappedCharacter(' ', new Position(0, 0), "", this, null, new HashMap<>()));
+      characters.add(0, new MappedCharacter(' ', new Position(0, 0), "", this, null, null));
     }
   }
 

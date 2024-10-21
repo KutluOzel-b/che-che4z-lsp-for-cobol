@@ -15,7 +15,7 @@
     },
     "children": [
       {
-        "snippet": "P8000-READ-TABLE.\r\n       \r\n           READ TRAVCONV-FILE INTO TRAVELERS-CONV-RECORD\r\n             AT END GO TO P8000-EXIT.\r\n                    MOVE \u0027Y\u0027 TO OUT-REC-TYPE.\r\n                    PERFORM X1.",
+        "snippet": "       P8000-READ-TABLE.\r\n       \r\n           READ TRAVCONV-FILE INTO TRAVELERS-CONV-RECORD\r\n             AT END GO TO P8000-EXIT.\r\n                    MOVE \u0027Y\u0027 TO OUT-REC-TYPE.\r\n                    PERFORM X1.",
         "name": "P8000-READ-TABLE",
         "type": "paragraph",
         "location": {
@@ -30,6 +30,20 @@
           }
         },
         "children": [
+          {
+            "type": "statement",
+            "location": {
+              "uri": "fake/path",
+              "start": {
+                "line": 26,
+                "character": 12
+              },
+              "end": {
+                "line": 27,
+                "character": 37
+              }
+            }
+          },
           {
             "type": "atEnd",
             "location": {
@@ -76,13 +90,27 @@
             }
           },
           {
+            "type": "statement",
+            "location": {
+              "uri": "fake/path",
+              "start": {
+                "line": 28,
+                "character": 21
+              },
+              "end": {
+                "line": 28,
+                "character": 45
+              }
+            }
+          },
+          {
             "targetName": "X1",
             "type": "perform",
             "location": {
               "uri": "fake/path",
               "start": {
                 "line": 29,
-                "character": 29
+                "character": 21
               },
               "end": {
                 "line": 29,
@@ -93,7 +121,7 @@
         ]
       },
       {
-        "snippet": "X1.\r\n           DISPLAY \u0027HAHAH\u0027.",
+        "snippet": "        X1.\r\n           DISPLAY \u0027HAHAH\u0027.",
         "name": "X1",
         "type": "paragraph",
         "location": {
@@ -106,10 +134,26 @@
             "line": 31,
             "character": 28
           }
-        }
+        },
+        "children": [
+          {
+            "type": "statement",
+            "location": {
+              "uri": "fake/path",
+              "start": {
+                "line": 31,
+                "character": 12
+              },
+              "end": {
+                "line": 31,
+                "character": 27
+              }
+            }
+          }
+        ]
       },
       {
-        "snippet": "P8000-EXIT.\r\n           EXIT.",
+        "snippet": "       P8000-EXIT.\r\n           EXIT.",
         "name": "P8000-EXIT",
         "type": "paragraph",
         "location": {

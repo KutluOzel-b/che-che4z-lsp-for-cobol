@@ -28,7 +28,6 @@ import org.eclipse.lsp.cobol.dialects.idms.IdmsDialect;
 import org.eclipse.lsp.cobol.dialects.idms.utils.Fixtures;
 import org.eclipse.lsp.cobol.lsp.SourceUnitGraph;
 import org.eclipse.lsp.cobol.service.CobolDocumentModel;
-import org.eclipse.lsp.cobol.service.UriDecodeService;
 import org.eclipse.lsp.cobol.service.delegates.hover.VariableHover;
 import org.eclipse.lsp.cobol.test.engine.UseCaseEngine;
 import org.eclipse.lsp.cobol.test.engine.UseCaseUtils;
@@ -66,13 +65,13 @@ class TestMapDefinition {
             ImmutableList.of(),
             new AnalysisConfig(
                 CopybookProcessingMode.ENABLED,
-                ImmutableList.of(IdmsDialect.NAME), true,
+                ImmutableList.of(IdmsDialect.NAME), true, false,
                 ImmutableList.of(),
                 ImmutableMap.of()));
     SourceUnitGraph documentGraph = mock(SourceUnitGraph.class);
     when(documentGraph.isUserSuppliedCopybook(anyString())).thenReturn(false);
     final Hover mapHover =
-        new VariableHover(new UriDecodeService())
+        new VariableHover()
             .getHover(
                 new CobolDocumentModel(UseCaseUtils.DOCUMENT_URI, TEXT, result),
                 new TextDocumentPositionParams(

@@ -193,8 +193,7 @@ public class VisitorHelper {
     return contexts.stream()
             .map(org.eclipse.lsp.cobol.core.CobolParser.DataUsageClauseContext::usageFormat)
             .filter(Objects::nonNull)
-            .map(org.eclipse.lsp.cobol.core.CobolParser.UsageFormatContext::getStart)
-            .map(Token::getText)
+            .map(org.eclipse.lsp.cobol.core.CobolParser.UsageFormatContext::getText)
             .map(UsageFormat::of)
             .collect(toList());
   }
@@ -283,6 +282,23 @@ public class VisitorHelper {
   }
 
   /**
+   * Construct the range from ANTLR token
+   *
+   * @param token the ANTLR token
+   * @return the range
+   */
+  public static Range constructRange(Token token) {
+    return new Range(
+            new Position(
+                    token.getLine() - 1,
+                    token.getCharPositionInLine()),
+            new Position(
+                    token.getLine() - 1,
+                    token.getCharPositionInLine() + token.getStopIndex() - token.getStartIndex() + 1)
+    );
+  }
+
+  /**
    * Construct for the locality using the node constructor and child nodes
    *
    * @param nodeConstructor function to construct a node
@@ -367,9 +383,13 @@ public class VisitorHelper {
    * @return locality object
    */
   public static Locality buildNameRangeLocality(ParserRuleContext ctx, String name, String uri) {
+    int startLine = Optional.ofNullable(ctx.start).map(Token::getLine).orElse(1) - 1;
+    int startCharPos = Optional.ofNullable(ctx.start).map(Token::getCharPositionInLine).orElse(0);
+    int stopLine = Optional.ofNullable(ctx.stop).map(Token::getLine).orElse(startLine + 1) - 1;
+
     Range range = new Range(
-        new Position(ctx.start.getLine() - 1, ctx.start.getCharPositionInLine()),
-        new Position(ctx.stop.getLine() - 1, ctx.start.getCharPositionInLine() + name.length()));
+        new Position(startLine, startCharPos),
+        new Position(stopLine, startCharPos + name.length()));
 
     return Locality.builder()
         .uri(uri)

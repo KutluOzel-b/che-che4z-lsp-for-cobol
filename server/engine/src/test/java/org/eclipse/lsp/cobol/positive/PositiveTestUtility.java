@@ -17,12 +17,15 @@ package org.eclipse.lsp.cobol.positive;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import lombok.experimental.UtilityClass;
+import org.eclipse.lsp.cobol.common.model.Locality;
 import org.eclipse.lsp.cobol.common.model.NodeType;
+import org.eclipse.lsp.cobol.common.model.tree.CopyNode;
 import org.eclipse.lsp.cobol.common.model.tree.Node;
 import org.eclipse.lsp.cobol.common.model.tree.ProgramNode;
 import org.eclipse.lsp.cobol.common.model.tree.variable.VariableNode;
 import org.eclipse.lsp.cobol.common.symbols.CodeBlockReference;
 import org.eclipse.lsp.cobol.common.symbols.SymbolTable;
+import org.eclipse.lsp.cobol.common.utils.ImplicitCodeUtils;
 import org.eclipse.lsp.cobol.core.engine.symbols.SymbolsRepository;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Range;
@@ -40,12 +43,8 @@ import static java.util.stream.Collectors.toList;
 /** Utility class for Positive Tests. */
 @UtilityClass
 public class PositiveTestUtility {
-
   private final List<String> blacklistedTestFiles =
       Arrays.asList(
-          "DB1014.2.cbl",
-          "DB1024.2.cbl",
-          "DB1044.2.cbl",
           "DB1054.2.cbl",
           "EXEC84.2.cbl",
           "IF1054.2.cbl",
@@ -97,7 +96,7 @@ public class PositiveTestUtility {
 
     fetchReferencesFromLSPEngine(
         rootNode,
-            symbolTableMap,
+        symbolTableMap,
         variableDefinitionFromLSPEngine,
         paragraphDefFromLSPEngine,
         programDefinitionFromLSPEngine);
@@ -283,15 +282,22 @@ public class PositiveTestUtility {
 
   private void assertReferencesByDataName(
       SysprintSnap snap, Collection<Node> nodes, String fileName) {
-    Optional<VariableNode> foundVariableNodeInLSP =
+    Optional<Node> first =
         nodes.stream()
             .filter(
-                node ->
-                    node.getLocality().toLocation().getRange().getStart().getLine() + 1
-                        == snap.getDefinedLineNo())
-            .findFirst()
-            .filter(VariableNode.class::isInstance)
-            .map(VariableNode.class::cast);
+                node -> {
+                  Locality locality = node.getLocality();
+                  boolean isImplicit = ImplicitCodeUtils.isImplicit(locality.getUri());
+                  int definedLineNo =
+                      snap.getDefinedLineNo(); // implicit nodes are always at line 0
+                  return (isImplicit && definedLineNo == 0)
+                      || locality.toLocation().getRange().getStart().getLine() + 1 == definedLineNo;
+                })
+            .findFirst();
+
+    Optional<VariableNode> foundVariableNodeInLSP =
+        first.filter(VariableNode.class::isInstance).map(VariableNode.class::cast);
+
     Assertions.assertTrue(
         foundVariableNodeInLSP.isPresent(),
         "["
@@ -305,7 +311,16 @@ public class PositiveTestUtility {
         node -> {
           List<Object> usagesFromEngine =
               node.getUsages().stream()
-                  .map(usage -> usage.getRange().getStart().getLine() + 1)
+                  .flatMap(
+                      usage -> {
+                        if (usage.getUri().contains(fileName)) {
+                          return Stream.of(usage.getRange().getStart().getLine() + 1);
+                        } else {
+                          // seems a copybook
+                          return getCopyBookLineNumber(node, usage).stream()
+                              .map(x -> x + usage.getRange().getStart().getLine() + 1);
+                        }
+                      })
                   .collect(Collectors.toList());
 
           List<Integer> unmatchedReferences =
@@ -337,23 +352,37 @@ public class PositiveTestUtility {
         });
   }
 
+  private List<Integer> getCopyBookLineNumber(Node node, Location usage) {
+    return node
+        .getNearestParentByType(NodeType.PROGRAM)
+        .map(
+            x ->
+                x.getDepthFirstStream()
+                    .filter(n1 -> n1.getNodeType() == NodeType.COPY)
+                    .map(CopyNode.class::cast)
+                    .filter(n2 -> n2.getUri().equals(usage.getUri()))
+                    .collect(toList()))
+        .orElse(emptyList())
+        .stream()
+        .map(n -> n.getLocality().getRange().getEnd().getLine() + 1)
+        .collect(toList());
+  }
+
   private void fetchReferencesFromLSPEngine(
       Node rootNode,
       Map<String, SymbolTable> symbolTableMap,
       Multimap<String, Node> variableDefinitionFromLSPEngine,
       Multimap<String, CodeBlockReference> paragraphDefFromLSPEngine,
       Multimap<String, Node> programDefinitionFromLSPEngine) {
-      SymbolsRepository repo = new SymbolsRepository();
-      repo.updateSymbols(symbolTableMap);
+    SymbolsRepository repo = new SymbolsRepository();
+    repo.updateSymbols(symbolTableMap);
     rootNode
         .getDepthFirstStream()
         .filter(node -> node.getNodeType() == NodeType.PROGRAM)
         .map(ProgramNode.class::cast)
         .forEach(
             programNode -> {
-              Stream.of(
-                      repo.getParagraphMap(programNode),
-                      repo.getSectionMap(programNode))
+              Stream.of(repo.getParagraphMap(programNode), repo.getSectionMap(programNode))
                   .flatMap(entry -> entry.entrySet().stream())
                   .forEach(
                       entry -> paragraphDefFromLSPEngine.put(entry.getKey(), entry.getValue()));

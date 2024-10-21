@@ -16,13 +16,16 @@ package org.eclipse.lsp.cobol.usecases.sql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.eclipse.lsp.cobol.common.AnalysisResult;
 import org.eclipse.lsp.cobol.common.error.ErrorSource;
+import org.eclipse.lsp.cobol.common.model.tree.variable.ElementaryNode;
 import org.eclipse.lsp.cobol.test.CobolText;
 import org.eclipse.lsp.cobol.test.engine.UseCaseEngine;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Range;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** Test sql host variables */
 public class TestSqlHostVariable {
@@ -153,6 +156,16 @@ public class TestSqlHostVariable {
                   + "           DISPLAY {$VAR12-LENGTH}.\n"
                   + "           DISPLAY {$VAR12-DATA}.";
 
+  public static final String LOD_VARS_TEXT_DBCLOB =
+          "        Identification Division.\n"
+                  + "        Program-Id. 'TEST1'.\n"
+                  + "        Data Division.\n"
+                  + "         Working-Storage Section.\n"
+                  + "       01 {$*VAR`->VAR`->VAR-LENGTH`->VAR-DATA} USAGE IS SQL TYPE IS DBCLOB (30).\n"
+                  + "       01 {$*VAS`->VAS`->VAS-LENGTH`->VAS-DATA} USAGE IS SQL TYPE IS DBCLOB (10 K).\n"
+                  + "        PROCEDURE DIVISION.\n"
+                  + "           DISPLAY {$VAR}.";
+
   public static final String LOD_VARS_TEXT1 =
           "        Identification Division.\n"
                   + "        Program-Id. 'TEST1'.\n"
@@ -174,9 +187,9 @@ public class TestSqlHostVariable {
                   + "       01 {$*VAR4`->VAR4`->VAR4-LENGTH`->VAR4-DATA} USAGE IS SQL TYPE IS XML AS CHAR LARGE OBJECT (10 G).\n"
                   + "       01 {$*VAR5`->VAR5`->VAR5-LENGTH`->VAR5-DATA} USAGE IS SQL TYPE IS XML AS CLOB (20).\n"
                   + "       01 {$*VAR6`->VAR6`->VAR6-LENGTH`->VAR6-DATA} USAGE IS SQL TYPE IS XML AS DBCLOB (30 K).\n"
-                  + "       01 {$*VAR-NAME10} USAGE IS SQL TYPE IS XML AS  BLOB-FILE.\n"
-                  + "       01 {$*VAR-NAME11} USAGE IS SQL TYPE IS XML AS  CLOB-FILE.\n"
-                  + "       01 {$*VAR-NAME12} USAGE IS SQL TYPE IS XML AS  DBCLOB-FILE.\n"
+                  + "       01 {$*VAR-NAME10`->VAR-NAME10`->VAR-NAME10-NAME-LENGTH`->VAR-NAME10-DATA-LENGTH`->VAR-NAME10-FILE-OPTION`->VAR-NAME10-NAME} USAGE IS SQL TYPE IS XML AS  BLOB-FILE.\n"
+                  + "       01 {$*VAR-NAME11`->VAR-NAME11`->VAR-NAME11-NAME-LENGTH`->VAR-NAME11-DATA-LENGTH`->VAR-NAME11-FILE-OPTION`->VAR-NAME11-NAME} USAGE IS SQL TYPE IS XML AS  CLOB-FILE.\n"
+                  + "       01 {$*VAR-NAME12`->VAR-NAME12`->VAR-NAME12-NAME-LENGTH`->VAR-NAME12-DATA-LENGTH`->VAR-NAME12-FILE-OPTION`->VAR-NAME12-NAME} USAGE IS SQL TYPE IS XML AS  DBCLOB-FILE.\n"
                   + "        PROCEDURE DIVISION.\n"
                   + "           DISPLAY {$var1}.";
 
@@ -245,6 +258,57 @@ public class TestSqlHostVariable {
                   + "           DISPLAY {$VB-LENGTH}(1).\n"
                   + "           DISPLAY {$VB-DATA}(1).\n";
 
+  public static final String LOB_XML_ARR_TEXT1 =
+          "        Identification Division.\n"
+                  + "        Program-Id. 'TEST1'.\n"
+                  + "        Data Division.\n"
+                  + "         Working-Storage Section.\n"
+                  + "       01 {$*VAR-NAME1}.\n"
+                  + "       04 {$*VAR`->VAR`->VAR-LENGTH`->VAR-DATA} USAGE IS SQL TYPE IS XML AS CLOB (10) OCCURS 12345 TIMES.\n"
+                  + "        PROCEDURE DIVISION.\n";
+
+  public static final String LOB_XML_ARR_TEXT2 =
+          "        Identification Division.\n"
+                  + "        Program-Id. 'TEST1'.\n"
+                  + "        Data Division.\n"
+                  + "         Working-Storage Section.\n"
+                  + "       01 {$*VAR`->VAR`->VAR-LENGTH`->VAR-DATA} USAGE IS SQL TYPE IS XML AS CLOB(10) OCCURS 1234 TIMES.\n"
+                  + "        PROCEDURE DIVISION.\n";
+
+  public static final String LOB_XML_ARR_TEXT3 =
+          "        Identification Division.\n"
+                  + "        Program-Id. 'TEST1'.\n"
+                  + "        Data Division.\n"
+                  + "         Working-Storage Section.\n"
+                  + "       01 {$*VAR-NAME1}.\n"
+                  + "       04 {$*VAR`->VAR`->VAR-LENGTH`->VAR-DATA} USAGE IS SQL TYPE IS XML AS CLOB (10) OCCURS {123456|1} TIMES.\n"
+                  + "        PROCEDURE DIVISION.\n";
+
+  public static final String LOB_XML_ARR_TEXT3_ERR2 =
+      "        Identification Division.\n"
+          + "        Program-Id. 'TEST1'.\n"
+          + "        Data Division.\n"
+          + "         Working-Storage Section.\n"
+          + "       01 {$*VAR-NAME1}.\n"
+          + "       04 {$*VAR`->VAR`->VAR-NAME-LENGTH`->VAR-DATA-LENGTH`->VAR-FILE-OPTION`->VAR-NAME} USAGE IS SQL TYPE IS XML AS CLOB-FILE OCCURS {123456|1} TIMES.\n"
+          + "        PROCEDURE DIVISION.\n"
+          + "           DISPLAY {$VAR}(1).\n"
+          + "           DISPLAY {$VAR-NAME-LENGTH}(1).\n"
+          + "           DISPLAY {$VAR-DATA-LENGTH}(1).\n"
+          + "           DISPLAY {$VAR-FILE-OPTION}(1).\n"
+          + "           DISPLAY {$VAR-NAME}(1).";
+
+  public static final String LOB_XML_ARR_TEXT4 =
+          "        Identification Division.\n"
+                  + "        Program-Id. 'TEST1'.\n"
+                  + "        Data Division.\n"
+                  + "         Working-Storage Section.\n"
+                  + "       01 {$*GREET}.\n"
+                  + "          02 {$*VA`->VA`->VA-LENGTH`->VA-DATA} USAGE IS SQL TYPE IS XML AS CLOB (10) OCCURS 12345 TIMES.\n"
+                  + "        PROCEDURE DIVISION.\n"
+                  + "           DISPLAY {$VA}(1).\n"
+                  + "           DISPLAY {$VA-LENGTH}(1).\n"
+                  + "           DISPLAY {$VA-DATA}(1).\n";
 
   public static final String ROWID_TEXT1 =
           "        Identification Division.\n"
@@ -263,6 +327,36 @@ public class TestSqlHostVariable {
                   + "       01 {$*VAR}.\n"
                   + "          52 {$*VAR1|1} USAGE IS SQL TYPE IS ROWID.\n"
                   + "        PROCEDURE DIVISION.\n";
+
+
+  public static final String ROWID_ARRAYS_TEXT1 =
+          "        Identification Division.\n"
+                  + "        Program-Id. 'TEST1'.\n"
+                  + "        Data Division.\n"
+                  + "         Working-Storage Section.\n"
+                  + "       01 {$*VAR}.\n"
+                  + "          02 {$*VAR1} USAGE IS SQL TYPE IS ROWID OCCURS 10 TIMES.\n"
+                  + "        PROCEDURE DIVISION.\n";
+
+  public static final String ROWID_ARRAYS_TEXT2 =
+          "        Identification Division.\n"
+                  + "        Program-Id. 'TEST1'.\n"
+                  + "        Data Division.\n"
+                  + "         Working-Storage Section.\n"
+                  + "       01 {$*VAR}.\n"
+                  + "          52 {$*VAR1|1} USAGE IS SQL TYPE IS ROWID OCCURS 10 TIMES.\n"
+                  + "        PROCEDURE DIVISION.\n";
+
+  public static final String ROWID_ARRAYS_TEXT3 =
+          "        Identification Division.\n"
+                  + "        Program-Id. 'TEST1'.\n"
+                  + "        Data Division.\n"
+                  + "         Working-Storage Section.\n"
+                  + "       01 {$*GREET}.\n"
+                  + "          40 {$*VAR} USAGE IS SQL TYPE IS ROWID OCCURS 100000 {TIMES|1}.\n"
+                  + "        PROCEDURE DIVISION.\n"
+                  + "           DISPLAY {$VAR}(1).";
+
 
   @Test
   void testSupportForResultSetLocator() {
@@ -369,6 +463,26 @@ public class TestSqlHostVariable {
   }
 
   @Test
+  void testLobVariables_dbclobPicClause_sizePrefix() {
+    AnalysisResult actual = UseCaseEngine.runTest(LOD_VARS_TEXT_DBCLOB, ImmutableList.of(), ImmutableMap.of());
+    actual.getSymbolTableMap().values().stream()
+            .findFirst().flatMap(firstSymbolTable -> firstSymbolTable.getVariables().values().stream()
+                    .filter(item -> "VAS-DATA".equals(item.getName()))
+                    .findFirst())
+            .ifPresent(varNode -> assertEquals("G(10 K)", ((ElementaryNode) varNode).getPicClause()));
+  }
+
+  @Test
+  void testLobVariables_dbclobPicClause() {
+    AnalysisResult actual = UseCaseEngine.runTest(LOD_VARS_TEXT_DBCLOB, ImmutableList.of(), ImmutableMap.of());
+    actual.getSymbolTableMap().values().stream()
+            .findFirst().flatMap(firstSymbolTable -> firstSymbolTable.getVariables().values().stream()
+                    .filter(item -> "VAR-DATA".equals(item.getName()))
+                    .findFirst())
+            .ifPresent(varNode -> assertEquals("G(30)", ((ElementaryNode) varNode).getPicClause()));
+  }
+
+  @Test
   void testLobVariables_level() {
     UseCaseEngine.runTest(LOD_VARS_TEXT1, ImmutableList.of(), ImmutableMap.of());
   }
@@ -408,6 +522,37 @@ public class TestSqlHostVariable {
             new Diagnostic(
                     new Range(),
                     "Allowed range is 2 to 48",
+                    DiagnosticSeverity.Error,
+                    ErrorSource.PARSING.getText()
+            )
+    ));
+  }
+
+  @Test
+  void testRowidVariablesArrays() {
+    UseCaseEngine.runTest(ROWID_ARRAYS_TEXT1, ImmutableList.of(), ImmutableMap.of());
+  }
+
+  @Test
+  void testRowidVariablesArrays_levelError() {
+    UseCaseEngine.runTest(ROWID_ARRAYS_TEXT2, ImmutableList.of(), ImmutableMap.of(
+            "1",
+            new Diagnostic(
+                    new Range(),
+                    "Allowed range is 2 to 48",
+                    DiagnosticSeverity.Error,
+                    ErrorSource.PARSING.getText()
+            )
+    ));
+  }
+
+  @Test
+  void testRowidVariablesArrays_rangeError() {
+    UseCaseEngine.runTest(ROWID_ARRAYS_TEXT3, ImmutableList.of(), ImmutableMap.of(
+            "1",
+            new Diagnostic(
+                    new Range(),
+                    "Allowed range is 1 to 32767",
                     DiagnosticSeverity.Error,
                     ErrorSource.PARSING.getText()
             )
@@ -468,5 +613,59 @@ public class TestSqlHostVariable {
   @Test
   void testBinaryHostVariableArray4() {
     UseCaseEngine.runTest(BINARY_ARR_TEXT4, ImmutableList.of(), ImmutableMap.of());
+  }
+
+  @Test
+  void testLobXMLVariableArray1() {
+    UseCaseEngine.runTest(LOB_XML_ARR_TEXT1, ImmutableList.of(), ImmutableMap.of());
+  }
+
+  @Test
+  void testLobXMLVariableArray2() {
+    UseCaseEngine.runTest(LOB_XML_ARR_TEXT2, ImmutableList.of(), ImmutableMap.of(
+            "1",
+            new Diagnostic(
+                    new Range(),
+                    "Allowed range is 2 to 48",
+                    DiagnosticSeverity.Error,
+                    ErrorSource.PARSING.getText()
+            )
+    ));
+  }
+
+  @Test
+  void testLobXMLVariableArray3() {
+    UseCaseEngine.runTest(
+            LOB_XML_ARR_TEXT3,
+            ImmutableList.of(),
+            ImmutableMap.of(
+                    "1",
+                    new Diagnostic(
+                            new Range(),
+                            "Allowed range is 1 to 32767",
+                            DiagnosticSeverity.Error,
+                            ErrorSource.PARSING.getText()
+                    )
+            )
+    );
+  }
+
+  @Test
+  void testLobXMLVariableArray3_err() {
+    UseCaseEngine.runTest(
+        LOB_XML_ARR_TEXT3_ERR2,
+        ImmutableList.of(),
+        ImmutableMap.of(
+            "1",
+            new Diagnostic(
+                new Range(),
+                "Allowed range is 1 to 32767",
+                DiagnosticSeverity.Error,
+                ErrorSource.PARSING.getText())));
+  }
+
+  @Test
+  void testLobXMLVariableArray4() {
+    UseCaseEngine.runTest(LOB_XML_ARR_TEXT4, ImmutableList.of(), ImmutableMap.of());
   }
 }

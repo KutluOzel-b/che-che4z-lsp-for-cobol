@@ -13,7 +13,9 @@
  */
 jest.mock("glob");
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { globSync } from "glob";
+import { Uri } from "../../../__mocks__/UriMock";
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as vscode from "vscode";
@@ -23,7 +25,6 @@ import { SettingsService } from "../../../services/Settings";
 import * as fsUtils from "../../../services/util/FSUtils";
 import { ProfileUtils } from "../../../services/util/ProfileUtils";
 import { SettingsUtils } from "../../../services/util/SettingsUtils";
-import { Utils } from "../../../services/util/Utils";
 import { CopybookDownloadService } from "../../../services/copybook/CopybookDownloadService";
 
 const copybookName: string = "NSTCOPY1";
@@ -32,27 +33,21 @@ const CPY_FOLDER_NAME = ".cobcopy";
 const RELATIVE_CPY_FOLDER_NAME = "../relativeCobcopy";
 const folderPath = path.join(__dirname, CPY_FOLDER_NAME);
 
-jest.mock("vscode", () => ({
-  Uri: {
-    parse: jest.fn().mockImplementation((str: string) => {
-      return {
-        fsPath: str.substring("file://".length),
-      };
-    }),
-    file: jest.fn().mockImplementation((str: string) => {
-      return {
-        fsPath: str,
-        toString: jest.fn().mockReturnValue(str),
-      };
-    }),
-  },
-  window: {
-    createOutputChannel: jest.fn().mockReturnValue({
-      appendLine: jest.fn(),
-    }),
-  },
-  workspace: {},
-}));
+jest.mock("vscode", () => {
+  const WS_URI = new Uri("/c:/my/workspace");
+  return {
+    Uri,
+    workspace: {
+      fs: {
+        readFile: jest.fn().mockImplementation(() => {
+          throw { code: "FileNotFound" };
+        }),
+      },
+      getWorkspaceFolder: () => ({ uri: WS_URI }),
+      workspaceFolders: [{ uri: WS_URI }],
+    },
+  };
+});
 
 SettingsUtils.getWorkspaceFoldersPath = jest.fn().mockReturnValue([__dirname]);
 vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
@@ -259,7 +254,9 @@ describe("Prioritize search criteria for copybooks test suite", () => {
     vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
       get: jest.fn().mockReturnValue([CPY_FOLDER_NAME]),
     });
-    SettingsService.getCopybookExtension = jest.fn().mockReturnValue([""]);
+    SettingsService.getCopybookExtension = jest
+      .fn()
+      .mockReturnValue(Promise.resolve([""]));
     (globSync as any) = jest.fn().mockReturnValue([copybookName]);
     const downloader = new CopybookDownloadService("/storagePath");
     const uri: string | undefined = await downloader.resolveCopybookHandler(

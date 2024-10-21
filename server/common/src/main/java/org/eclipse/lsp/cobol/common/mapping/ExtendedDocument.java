@@ -15,6 +15,10 @@
 package org.eclipse.lsp.cobol.common.mapping;
 
 import lombok.Getter;
+
+import java.util.List;
+
+import org.eclipse.lsp.cobol.common.model.Locality;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
@@ -49,6 +53,29 @@ public class ExtendedDocument {
 
   public String getUri() {
     return baseText.getUri();
+  }
+
+  /**
+   * Returns original text, situated between the start and the end lines from the locality range
+   * @param locality - the text locality
+   * @return string value that represents a text from the original document
+   */
+  public String getBaseText(Locality locality) {
+    int startLine = locality.getRange().getStart().getLine();
+    int endLine = locality.getRange().getEnd().getLine();;
+
+    if (!baseText.getUri().equals(locality.getUri())
+        || baseText.getLines().size() <= endLine) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    for (int i = startLine; i <= endLine; i++) {
+      sb.append(baseText.getLines().get(i).toString());
+      if (i != endLine) {
+        sb.append("\r\n");
+      }
+    }
+    return sb.toString();
   }
 
   /**
@@ -119,6 +146,18 @@ public class ExtendedDocument {
   }
 
   /**
+   * Replaces given range of text with a new text
+   * @param range - range of text to replace
+   * @param textLine - a new Extended text
+   */
+  public void replace(Range range, ExtendedTextLine textLine) {
+    Range updatedRange = updateRangeDueToChanges(range);
+    currentText.clear(updatedRange);
+    currentText.append(updatedRange.getStart().getLine(), textLine);
+    dirty = true;
+  }
+
+  /**
    * Cleares a range of text
    * @param range - a range of text
    */
@@ -128,9 +167,43 @@ public class ExtendedDocument {
     dirty = true;
   }
 
+  /**
+   * Fill the range with the given character
+   * @param range - a range of text
+   * @param c - the character
+   */
+  public void fillArea(Range range, char c) {
+    range = updateRangeDueToChanges(range);
+    currentText.fillArea(range, c);
+    dirty = true;
+  }
+
   @Override
   public String toString() {
     return baseText.toString();
+  }
+
+  /**
+   * Checks if a line segment can be trimmed to empty string
+   * @param lineno line number to investigate
+   * @param start start column
+   * @param end end column (exclusive)
+   * @return segment consists of trimmable characters only
+   */
+  public boolean isLineEmptyBetweenColumns(int lineno, int start, int end) {
+    assert 0 <= lineno;
+    assert 0 <= start;
+    assert start <= end;
+    List<ExtendedTextLine> lines = baseText.getLines();
+    if (lineno >= lines.size())
+      return true;
+    List<MappedCharacter> chars = lines.get(lineno).getCharacters();
+    for (int i = start; i < chars.size() && i < end; ++i) {
+      // emulates behavior of trim function
+      if (chars.get(i).getCharacter() > ' ')
+        return false;
+    }
+    return true;
   }
 
   private Range updateRangeDueToChanges(Range range) {

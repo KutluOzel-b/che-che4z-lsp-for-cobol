@@ -28,13 +28,11 @@ import org.junit.jupiter.api.Test;
 class TestUnexpectedCharErrorShown {
 
   private static final String TEXT =
-      "        IDENTIFICATION DIVISION{?|typo|dot}.\r\n"
+            "        IDENTIFICATION DIVISION{?|typo}.\r\n"
           + "        PROGRAM-ID. test1.\r\n"
           + "        DATA DIVISION.\r\n"
           + "        PROCEDURE DIVISION.\r\n"
-          + "        END PROGRAM {test1|1}.";
-
-  private static final String MESSAGE = "Syntax error on '?'";
+          + "        END PROGRAM test1.";
 
   @Test
   void test() {
@@ -44,19 +42,11 @@ class TestUnexpectedCharErrorShown {
         ImmutableMap.of(
             "typo",
             new Diagnostic(
-                new Range(), MESSAGE, DiagnosticSeverity.Error, ErrorSource.PARSING.getText()),
-            "dot",
-            new Diagnostic(
                 new Range(),
-                "A period was assumed before \"?\".",
+                "Extraneous input '?'",
                 DiagnosticSeverity.Error,
-                ErrorSource.PARSING.getText()),
-                "1",
-                new Diagnostic(
-                        new Range(),
-                        "There is an issue with PROGRAM-ID paragraph",
-                        DiagnosticSeverity.Warning,
-                        ErrorSource.PARSING.getText())),
+                ErrorSource.PARSING.getText())
+            ),
         CobolLanguageId.COBOL);
   }
 }

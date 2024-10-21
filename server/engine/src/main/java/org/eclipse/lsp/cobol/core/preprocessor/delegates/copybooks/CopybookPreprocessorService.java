@@ -99,7 +99,6 @@ class CopybookPreprocessorService {
                           int maxCopybookLen, List<ReplacementContext> replacementContext) {
     CopybookName name = getCopybookName(copySource);
     String copybookName = name.getQualifiedName();
-    String copybookId = name.toCopybookId(programDocumentUri).toString();
 
     Range range = VisitorHelper.constructRange(ctx);
     Locality nameLocality = mapLocality(retrieveLocality(copySource));
@@ -218,17 +217,7 @@ class CopybookPreprocessorService {
     if (start.getCharacter() < 7) {
       return true;
     }
-    String text = extendedDocument.toString();
-    String[] lines = text.split("\\r?\\n");
-    if (lines.length <= start.getLine()) {
-      return true;
-    }
-    String line = lines[start.getLine()];
-    if (line.length() < 7) {
-      return true;
-    }
-    line = line.substring(7, Math.min(start.getCharacter(), line.length()));
-    return line.trim().isEmpty();
+    return extendedDocument.isLineEmptyBetweenColumns(start.getLine(), 7, start.getCharacter());
   }
 
   private CopybookName getCopybookName(CobolPreprocessor.CopySourceContext ctx) {

@@ -16,7 +16,7 @@ import * as assert from "assert";
 import * as helper from "./testHelper";
 import * as vscode from "vscode";
 import * as path from "path";
-import { pos, range } from "./testHelper";
+import { pos } from "./testHelper";
 
 suite("TF35623: Support for Replacing and Mapping statement", function () {
   this.timeout(helper.TEST_TIMEOUT);
@@ -26,15 +26,19 @@ suite("TF35623: Support for Replacing and Mapping statement", function () {
     await helper.activate();
   });
 
-  this.beforeEach(async () => {
+  this.afterEach(async () => {
     await helper.closeAllEditors();
   });
 
+  this.afterAll(async () => await helper.closeAllEditors()).timeout(
+    helper.TEST_TIMEOUT,
+  );
+
   test("TC248045: Replacing Basic Scenario", async () => {
     const extSrcPath = path.join("TEST1.CBL");
-    let diagPromise = helper.waitForDiagnosticsChange(extSrcPath);
+    const diagPromise = helper.waitForDiagnosticsChange(extSrcPath);
     await helper.showDocument(extSrcPath);
-    let editor = helper.get_editor("TEST1.CBL");
+    const editor = helper.getEditor("TEST1.CBL");
     let diagnostics = await diagPromise;
     assert.strictEqual(diagnostics.length, 1);
     const message = diagnostics[0].message;
@@ -54,9 +58,9 @@ suite("TF35623: Support for Replacing and Mapping statement", function () {
 
   test("TC248087: Replacing twice for one variable", async () => {
     const extSrcPath = path.join("TEST2.CBL");
-    let diagPromise = helper.waitForDiagnosticsChange(extSrcPath);
+    const diagPromise = helper.waitForDiagnosticsChange(extSrcPath);
     await helper.showDocument(extSrcPath);
-    let editor = helper.get_editor("TEST2.CBL");
+    const editor = helper.getEditor("TEST2.CBL");
     let diagnostics = await diagPromise;
     assert.strictEqual(diagnostics.length, 1);
     const message = diagnostics[0].message;
@@ -82,8 +86,8 @@ suite("TF35623: Support for Replacing and Mapping statement", function () {
 
   test("TC248131: Several COPY statements with replacing", async () => {
     const extSrcPath = path.join("TEST3.CBL");
-    let diagPromise = helper.waitForDiagnosticsChange(extSrcPath);
-    let editor = await helper.showDocument(extSrcPath);
+    const diagPromise = helper.waitForDiagnosticsChange(extSrcPath);
+    const editor = await helper.showDocument(extSrcPath);
     let diagnostics = await diagPromise;
     assert.strictEqual(diagnostics.length, 1);
     const message = diagnostics[0].message;
@@ -115,7 +119,7 @@ suite("TF35623: Support for Replacing and Mapping statement", function () {
     await helper.waitFor(
       () => vscode.languages.getDiagnostics(editor.document.uri).length === 1,
     );
-    let diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
+    const diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
     assert.strictEqual(diagnostics.length, 1);
     const message = diagnostics[0].message;
     assert.match(message, /^Syntax error on 'DIVISIO' expected DIVISION/);
@@ -129,7 +133,7 @@ suite("TF35623: Support for Replacing and Mapping statement", function () {
     await helper.waitFor(
       () => vscode.languages.getDiagnostics(editor.document.uri).length === 1,
     );
-    let diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
+    const diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
     assert.strictEqual(diagnostics.length, 1);
     const message = diagnostics[0].message;
     assert.match(message, /^Variable VARNAME is not defined/);
@@ -137,7 +141,7 @@ suite("TF35623: Support for Replacing and Mapping statement", function () {
 
   test.skip("TC250747: Support building of the extended document", async () => {
     const extSrcPath = path.join("TEST6.CBL");
-    let editor = await helper.showDocument(extSrcPath);
+    const editor = await helper.showDocument(extSrcPath);
     await helper.waitFor(
       () => vscode.languages.getDiagnostics(editor.document.uri).length > 0,
     );
@@ -159,9 +163,9 @@ suite("TF35623: Support for Replacing and Mapping statement", function () {
       await helper.waitFor(
         () => vscode.languages.getDiagnostics(editor.document.uri).length > 0,
       );
-      let diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
+      const diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
       const message = diagnostics[0].message;
-      assert.match(message, /^A period was assumed before/);
+      assert.match(message, /^A period was assumed before "\+3"./);
     },
   );
 });

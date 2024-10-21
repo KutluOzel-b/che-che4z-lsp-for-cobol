@@ -11,7 +11,7 @@
  * Contributors:
  *   Broadcom, Inc. - initial API and implementation
  */
-import * as fs from "fs-extra";
+import { Uri } from "../../__mocks__/UriMock";
 import * as path from "path";
 import * as vscode from "vscode";
 import { SettingsService } from "../../services/Settings";
@@ -24,16 +24,20 @@ beforeAll(() => {
   ];
 });
 
-jest.mock("vscode", () => ({
-  Uri: {
-    parse: jest.fn().mockImplementation((str: string) => {
-      return {
-        fsPath: str.substring("file://".length),
-      };
-    }),
-  },
-  workspace: {},
-}));
+// TODO: this is horrifying as well
+jest.mock("vscode", () => {
+  return {
+    Uri,
+    workspace: {
+      fs: {
+        readFile: jest.fn().mockImplementation(() => {
+          throw { code: "FileNotFound" };
+        }),
+      },
+      getWorkspaceFolder: () => {},
+    },
+  };
+});
 
 function makefsPath(p: string): string {
   return path.join(process.platform == "win32" ? "a:" : "", p);
@@ -65,55 +69,101 @@ describe("SettingsService evaluate variables", () => {
       },
     ];
   });
-  test("Evaluate fileBasenameNoExtension", () => {
+  test("Evaluate fileBasenameNoExtension", async () => {
     vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
       get: jest.fn().mockReturnValue(["copybook/${fileBasenameNoExtension}"]),
     });
-    const paths = SettingsService.getCopybookLocalPath(
+    const paths = await SettingsService.getCopybookLocalPath(
       "file:///program",
       "COBOL",
     );
     expect(paths[0]).toEqual(makefsPath("/tmp-ws/copybook/program"));
   });
 
-  test("Evaluate fileBasenameNoExtension", () => {
+  test("Evaluate fileBasenameNoExtension", async () => {
     vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
       get: jest.fn().mockReturnValue(["copybook/${fileBasenameNoExtension}"]),
     });
-    const paths = SettingsService.getCopybookLocalPath(
+    const paths = await SettingsService.getCopybookLocalPath(
       "file:///program.cbl",
       "COBOL",
     );
     expect(paths[0]).toEqual(makefsPath("/tmp-ws/copybook/program"));
   });
 
-  test("Evaluate fileBasenameNoExtension with extension and dots", () => {
+  test("Evaluate fileBasenameNoExtension with extension and dots", async () => {
     vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
       get: jest.fn().mockReturnValue(["copybook/${fileBasenameNoExtension}"]),
     });
 
-    const paths = SettingsService.getCopybookLocalPath(
+    const paths = await SettingsService.getCopybookLocalPath(
       "file:///program.file.cbl",
       "COBOL",
     );
     expect(paths[0]).toEqual(makefsPath("/tmp-ws/copybook/program.file"));
   });
 
-  test("Get local settings for a dialect", () => {
+  test("Evaluate fileDirname", async () => {
+    vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
+      get: jest.fn().mockReturnValue(["${fileDirname}/copybooks"]),
+    });
+    const paths = await SettingsService.getCopybookLocalPath(
+      "file://" + makePath("/toplevel/program"),
+      "COBOL",
+    );
+    expect(paths[0]).toEqual(makefsPath("/toplevel") + "/copybooks");
+  });
+
+  test("Evaluate fileDirnameBasename", async () => {
+    vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
+      get: jest.fn().mockReturnValue(["${fileDirnameBasename}/copybooks"]),
+    });
+    const paths = await SettingsService.getCopybookLocalPath(
+      "file:///toplevel/program",
+      "COBOL",
+    );
+    expect(paths[0]).toEqual(makefsPath("/tmp-ws/toplevel/copybooks"));
+  });
+
+  test("Evaluate workspaceFolder", async () => {
+    vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
+      get: jest.fn().mockReturnValue(["${workspaceFolder}/copybooks"]),
+    });
+    const paths = await SettingsService.getCopybookLocalPath(
+      "file://" + makePath("/toplevel/program"),
+      "COBOL",
+    );
+    expect(paths[0]).toEqual(makefsPath("/tmp-ws") + "/copybooks");
+  });
+
+  test("Evaluate workspaceFolder with name", async () => {
+    vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
+      get: jest
+        .fn()
+        .mockReturnValue(["${workspaceFolder:workspace}/copybooks"]),
+    });
+    const paths = await SettingsService.getCopybookLocalPath(
+      "file://" + makePath("/toplevel/program"),
+      "COBOL",
+    );
+    expect(paths[0]).toEqual(makefsPath("/tmp-ws") + "/copybooks");
+  });
+
+  test("Get local settings for a dialect", async () => {
     const tracking = jest.fn().mockReturnValue(["copybook"]);
     vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
       get: tracking,
     });
-    SettingsService.getCopybookLocalPath("PROGRAM", "COBOL");
+    await SettingsService.getCopybookLocalPath("PROGRAM", "COBOL");
     expect(tracking).toBeCalledWith("paths-local");
   });
 
-  test("Get local settings for dialect", () => {
+  test("Get local settings for dialect", async () => {
     const tracking = jest.fn().mockReturnValue(["copybook"]);
     vscode.workspace.getConfiguration = jest.fn().mockReturnValue({
       get: tracking,
     });
-    SettingsService.getCopybookLocalPath("PROGRAM", "MAID");
+    await SettingsService.getCopybookLocalPath("PROGRAM", "MAID");
     expect(tracking).toBeCalledWith("maid.paths-local");
   });
 
@@ -180,7 +230,7 @@ describe("SettingsService returns correct tab settings", () => {
 describe("SettingsService returns correct Copybook Configuration Values", () => {
   const mockConfigurationFetch = (settings: string, configuredValue: any) =>
     jest.fn().mockReturnValue({
-      get: (args: String) => {
+      get: (args: string) => {
         if (settings === args) {
           return configuredValue;
         }

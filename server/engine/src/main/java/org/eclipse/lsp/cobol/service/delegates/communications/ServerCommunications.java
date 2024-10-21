@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.lsp.cobol.common.file.FileSystemService;
 import org.eclipse.lsp.cobol.common.message.MessageService;
 import org.eclipse.lsp.cobol.lsp.jrpc.CobolLanguageClient;
-import org.eclipse.lsp.cobol.service.UriDecodeService;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.ExecuteCommandOptions;
 import org.eclipse.lsp4j.MessageParams;
@@ -57,22 +57,19 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 @Slf4j
 public class ServerCommunications implements Communications {
 
-  private final Set<String> uriInProgress = new HashSet<>();
+  private final Set<String> uriInProgress = Collections.synchronizedSet(new HashSet<>());
   private final MessageService messageService;
   private final Provider<CobolLanguageClient> provider;
   private final FileSystemService files;
-  private final UriDecodeService uriDecodeService;
 
   @Inject
   public ServerCommunications(
           Provider<CobolLanguageClient> provider,
           FileSystemService files,
-          MessageService messageService,
-          UriDecodeService uriDecodeService) {
+          MessageService messageService) {
     this.provider = provider;
     this.files = files;
     this.messageService = messageService;
-    this.uriDecodeService = uriDecodeService;
   }
 
 
@@ -112,7 +109,7 @@ public class ServerCommunications implements Communications {
   public void publishDiagnostics(Map<String, List<Diagnostic>> diagnostics) {
     diagnostics.forEach(
             (uri, diagnostic) -> {
-              PublishDiagnosticsParams diagnostics1 = new PublishDiagnosticsParams(uriDecodeService.getOriginalUri(uri), clean(diagnostic));
+              PublishDiagnosticsParams diagnostics1 = new PublishDiagnosticsParams(uri, clean(diagnostic));
               LOG.debug("publishDiagnostics " + diagnostics1);
               getClient().publishDiagnostics(diagnostics1);
             }

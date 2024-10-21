@@ -14,8 +14,8 @@
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
-        <maven.antlr4.plugin.version>4.7</maven.antlr4.plugin.version>
-        <antlr.version>4.7.1</antlr.version>
+        <maven.antlr4.plugin.version>4.13.2</maven.antlr4.plugin.version>
+        <antlr.version>4.13.2</antlr.version>
         <lombok.version>1.18.30</lombok.version>
         <maven.resources.plugin.version>3.0.2</maven.resources.plugin.version>
         <maven.checkstyle.plugin.version>3.1.1</maven.checkstyle.plugin.version>
@@ -194,13 +194,6 @@
                             <goal>antlr4</goal>
                         </goals>
                         <configuration>
-                            <arguments>
-                                <argument>-package</argument>
-                                <argument>org.eclipse.usecase</argument>
-                                <argument>-o</argument>
-                                <argument>${basedir}/target/generated-sources/antlr4/org/eclipse/usecase</argument>
-                            </arguments>
-                            <sourceDirectory>src/main/antlr4/org/eclipse/usecase</sourceDirectory>
                             <listener>true</listener>
                             <visitor>false</visitor>
                         </configuration>

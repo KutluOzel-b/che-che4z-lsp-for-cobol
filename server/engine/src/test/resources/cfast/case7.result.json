@@ -21,7 +21,7 @@
           "uri": "fake/path",
           "start": {
             "line": 16,
-            "character": 20
+            "character": 12
           },
           "end": {
             "line": 16,
@@ -44,7 +44,7 @@
         }
       },
       {
-        "snippet": "PARAG1.\r\n            EXIT.",
+        "snippet": "       PARAG1.\r\n            EXIT.",
         "name": "PARAG1",
         "type": "paragraph",
         "location": {

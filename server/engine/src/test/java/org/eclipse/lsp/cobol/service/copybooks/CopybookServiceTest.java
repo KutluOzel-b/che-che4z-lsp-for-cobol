@@ -39,7 +39,6 @@ import org.eclipse.lsp.cobol.common.mapping.ExtendedText;
 import org.eclipse.lsp.cobol.common.mapping.OriginalLocation;
 import org.eclipse.lsp.cobol.common.utils.PredefinedCopybooks;
 import org.eclipse.lsp.cobol.lsp.jrpc.CobolLanguageClient;
-import org.eclipse.lsp.cobol.service.UriDecodeService;
 import org.eclipse.lsp.cobol.service.providers.ClientProvider;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +68,6 @@ class CopybookServiceTest {
   private final CleanerPreprocessor preprocessor = mock(CleanerPreprocessor.class);
   private final Path cpyPath = mock(Path.class);
   private final Path parentPath = mock(Path.class);
-  private final UriDecodeService uriDecodeService = new UriDecodeService();
   private final String languageId = "cobol";
 
   @BeforeEach
@@ -381,22 +379,22 @@ class CopybookServiceTest {
         new CopybookModel(
             copybookInvalid2.toCopybookId(DOCUMENT_2_URI), copybookInvalid2, null, null),
         invalidCpy2);
-
+    CopyBookDTO invalidCopybook = new CopyBookDTO(copybookInvalid);
     // First document parsing done
     copybookService.sendCopybookDownloadRequest(DOCUMENT_URI, emptyList(), ENABLED);
     verify(client, times(1))
-        .downloadCopybooks(DOCUMENT_URI, ImmutableList.of(INVALID_CPY_NAME), "COBOL", true);
+        .downloadCopybooks(DOCUMENT_URI, ImmutableList.of(invalidCopybook), true);
 
     // Others parsing done events for first document are not trigger settingsService
     copybookService.sendCopybookDownloadRequest(DOCUMENT_URI, emptyList(), ENABLED);
 
     verify(client, times(1))
-        .downloadCopybooks(DOCUMENT_URI, ImmutableList.of(INVALID_CPY_NAME), "COBOL", true);
-
+        .downloadCopybooks(DOCUMENT_URI, ImmutableList.of(invalidCopybook), true);
+    CopyBookDTO invalidCopybook2 = new CopyBookDTO(copybookInvalid2);
     // Second document parsing done
     copybookService.sendCopybookDownloadRequest(DOCUMENT_2_URI, emptyList(), ENABLED);
     verify(client, times(1))
-        .downloadCopybooks(DOCUMENT_2_URI, ImmutableList.of(INVALID_2_CPY_NAME), "COBOL", true);
+        .downloadCopybooks(DOCUMENT_2_URI, ImmutableList.of(invalidCopybook2), true);
   }
 
   /** Test that the service resolves the SQLDA predefined copybook */
@@ -490,10 +488,12 @@ class CopybookServiceTest {
 
     // Notify that analysis finished sending the document URI and copybook names that have nested
     // copybooks
+    CopyBookDTO invalidCopybook = new CopyBookDTO(copybookInvalid);
+    CopyBookDTO nestedCopybook = new CopyBookDTO(copybookNested);
     copybookService.sendCopybookDownloadRequest(
         DOCUMENT_URI, asList(PARENT_CPY_URI, DOCUMENT_URI), ENABLED);
     verify(client, times(1))
-        .downloadCopybooks(DOCUMENT_URI, asList(INVALID_CPY_NAME, NESTED_CPY_NAME), "COBOL", true);
+        .downloadCopybooks(DOCUMENT_URI, asList(invalidCopybook, nestedCopybook), true);
   }
 
   @Test
@@ -532,7 +532,7 @@ class CopybookServiceTest {
     ClientProvider provider = new ClientProvider();
     provider.setClient(client);
     return new CopybookServiceImpl(
-        provider, files, new CopybookCache(3, 3, "HOURS"), uriDecodeService);
+        provider, files, new CopybookCache(3, 3, "HOURS"));
   }
 
   private CopybookName createCopybook(String displayName) {

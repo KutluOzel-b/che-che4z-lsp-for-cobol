@@ -33,6 +33,20 @@ on:
       - master
 
 jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies for COBOL LS
+        working-directory: clients/cobol-lsp-vscode-extension
+        run: npm ci
+      - name: Check code formatting for COBOL LS
+        working-directory: clients/cobol-lsp-vscode-extension
+        run: npm run lint-format
+      - name: Check code quality for COBOL LS
+        working-directory: clients/cobol-lsp-vscode-extension
+        run: npm run lint-quality
   zipSources:
     runs-on: ubuntu-latest
     steps:
@@ -49,7 +63,7 @@ jobs:
       - name: Install dependencies for DaCo dialect
         working-directory: clients/daco-dialect-support
         run: NODE_ENV=production npm ci
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: clients-for-bd-scan
           path: clients/**
@@ -61,9 +75,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: graalvm/setup-graalvm@v1
         with:
-          version: '22.3.0'
-          java-version: '11'
+          java-version: '17'
           components: 'native-image'
+          distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ## uncomment me if you need native image job reports
           # native-image-job-reports: 'true'
@@ -72,7 +86,7 @@ jobs:
         working-directory: server
         run: mvn -e -B -Pnative -Dagent=true -Dtest=\!PositiveTest* -DfailIfNoTests=false test
       - name: Upload native build configuration
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: native-build-configuration
@@ -84,26 +98,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: graalvm/setup-graalvm@v1
+      - uses: actions/setup-java@v4
         with:
-          version: '22.3.0'
+          distribution: 'temurin'
           java-version: '11'
-          components: 'native-image'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          ## uncomment me if you need native image job reports
-          # native-image-job-reports: 'true'
           cache: 'maven'
       - name: Build Server and Dialects Jars
         working-directory: server
         run: mvn clean verify --no-transfer-progress
       - name: Upload performance data
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: test-perfomance-data
           path: server/engine/target/perf.csv
       - name: Upload jar files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: jar
           path: server/engine/target/server.jar
@@ -116,7 +126,7 @@ jobs:
           npm ci
           npm run compile
       - name: Upload cobol dialect API library
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lib
           path: clients/cobol-dialect-api/lib/*    
@@ -140,13 +150,13 @@ jobs:
           npm run package
           cp *.vsix ../../.
       - name: Upload IDMS vsix
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: vsix-idms-dialect
           path: 'cobol-language-support-for-idms*.vsix'
       - name: Upload DaCo vsix
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: vsix-daco-dialect
@@ -173,7 +183,7 @@ jobs:
           npm run package:web
           cp *.vsix ../../.
       - name: Upload Web vsix
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: vsix-cobol-language-support-web
@@ -189,9 +199,9 @@ jobs:
           - os: ubuntu-latest
             arch: x64
             container: alpine:3.17
-          - os: macos-14-large
+          - os: macos-13
             arch: x64
-          - os: macos-14-xlarge
+          - os: macos-14
             arch: arm64
     runs-on: ${{ matrix.os }}
     needs: [generateNativeConfig]
@@ -201,7 +211,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: echo "target=win32-${{ matrix.arch }}" >> $env:GITHUB_ENV
       - shell: sh
-        if: startsWith( matrix.os, 'macos-14')
+        if: startsWith( matrix.os, 'macos')
         run: echo "target=darwin-${{ matrix.arch }}" >> $GITHUB_ENV
       - shell: sh
         if: matrix.os == 'ubuntu-latest'
@@ -223,9 +233,9 @@ jobs:
       - uses: graalvm/setup-graalvm@v1
         if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
         with:
-          version: '22.3.0'
-          java-version: '11'
+          java-version: '17'
           components: 'native-image'
+          distribution: 'graalvm-community'
           native-image-musl: 'true'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ## uncomment me if you need native image job reports
@@ -234,9 +244,9 @@ jobs:
       - uses: graalvm/setup-graalvm@v1
         if: matrix.os != 'ubuntu-latest' || matrix.arch != 'x64'
         with:
-          version: '22.3.0'
-          java-version: '11'
+          java-version: '17'
           components: 'native-image'
+          distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ## uncomment me if you need native image job reports
           # native-image-job-reports: 'true'
@@ -244,7 +254,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         if: matrix.os == 'windows-latest'
       - name: Retrieve native build configurations
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: native-build-configuration
           path: native-build-configuration
@@ -267,7 +277,7 @@ jobs:
         run: mvn -e -B -Plinux-native -DskipTests clean package
       - name: Prepare windows artifacts
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: staging-${{ env.target }}
           path: |
@@ -277,7 +287,7 @@ jobs:
           if-no-files-found: error
       - name: Prepare non-windows artifacts
         if: matrix.os != 'windows-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: staging-${{ env.target }}
           path: server/engine/target/engine
@@ -293,9 +303,9 @@ jobs:
           - os: ubuntu-latest
             arch: x64
             container: alpine:3.17
-          - os: macos-14-large
+          - os: macos-13
             arch: x64
-          - os: macos-14-xlarge
+          - os: macos-14
             arch: arm64
     runs-on: ${{ matrix.os }}
     needs: [buildNative,buildPlatformIndependedPart]
@@ -305,19 +315,19 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: echo "target=win32-${{ matrix.arch }}" >> $env:GITHUB_ENV
       - shell: sh
-        if: startsWith( matrix.os, 'macos-14')
+        if: startsWith( matrix.os, 'macos')
         run: echo "target=darwin-${{ matrix.arch }}" >> $GITHUB_ENV
       - shell: sh
         if: matrix.os == 'ubuntu-latest'
         run: echo "target=linux-${{ matrix.arch }}" >> $GITHUB_ENV
       - uses: actions/checkout@v3
       - name: Retrieve native build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: staging-${{ env.target }}
           path: staging/${{ env.target }}
       - name: Retrieve server jars
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: jar
           path: jar
@@ -332,9 +342,7 @@ jobs:
         working-directory: clients/cobol-lsp-vscode-extension
         if: startsWith( matrix.os, 'windows')
         run: |
-          cp ../../staging/${{ env.target }}/engine.build_artifacts.txt ./server/native
           cp ../../staging/${{ env.target }}/engine.exe ./server/native
-          cp ../../staging/${{ env.target }}/sunmscapi.dll ./server/native
           cp ./server/native/* ../../tests/native-executable-tests/server/windows/
       - name: Deploy macos executable
         working-directory: clients/cobol-lsp-vscode-extension
@@ -354,7 +362,7 @@ jobs:
         with:
           node-version: 16
       - name: Download VS Code extension dialect API
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: lib
           path: clients/cobol-dialect-api
@@ -371,13 +379,13 @@ jobs:
         run: |
           npm run package  -- --target ${{ env.target }}
           cp *.vsix ../../.
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: vsix-cobol-language-support-${{ env.target }}
           path: 'cobol-language-support*.vsix'
       - name: Retrieve idms dialect
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: vsix-idms-dialect
           path: dialects-idms
@@ -387,7 +395,7 @@ jobs:
           unzip -j dialects-idms/*.vsix extension/server/jar/dialect-idms.jar -d clients/idms-dialect-support/server/jar
         shell: bash
       - name: Retrieve daco dialect
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: vsix-daco-dialect
           path: dialects-daco

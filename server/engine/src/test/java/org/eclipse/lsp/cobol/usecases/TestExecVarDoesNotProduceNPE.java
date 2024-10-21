@@ -49,7 +49,7 @@ class TestExecVarDoesNotProduceNPE {
             "2",
             new Diagnostic(
                 new Range(),
-                "A period was assumed before \"<EOF>\".",
+                "Unexpected end of file",
                 DiagnosticSeverity.Error,
                 ErrorSource.PARSING.getText())));
   }

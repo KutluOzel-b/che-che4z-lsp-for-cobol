@@ -46,8 +46,8 @@ class TestPICVariableStructure {
           + "       ENVIRONMENT DIVISION.                                            \n"
           + "       DATA DIVISION.                                                   \n"
           + "       WORKING-STORAGE SECTION.                                         \n"
-          + "       77  {$*DATA-J}                             PICTURE IS {W|1}WWWW.         \n"
-          + "       {77|2}  {$*DATA-S}             PICTURE X(20) VALUE               \"OFFSET \n"
+          + "       77  {$*DATA-J}                             PICTURE IS {W|1}WWWW.\n"
+          + "       {77}  {$*DATA-S}             PICTURE X(20) VALUE               \"OFFSET \n"
           + "      -             \"CONTINUATION \".     ";
 
   @Test
@@ -65,12 +65,6 @@ class TestPICVariableStructure {
             new Diagnostic(
                 new Range(),
                 "Syntax error on 'W'",
-                DiagnosticSeverity.Error,
-                ErrorSource.PARSING.getText()),
-            "2",
-            new Diagnostic(
-                new Range(),
-                "A period was assumed before \"77\".",
                 DiagnosticSeverity.Error,
                 ErrorSource.PARSING.getText())));
   }

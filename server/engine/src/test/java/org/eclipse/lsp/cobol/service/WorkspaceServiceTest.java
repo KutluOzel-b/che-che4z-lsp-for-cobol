@@ -27,7 +27,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.lsp.cobol.common.SubroutineService;
 import org.eclipse.lsp.cobol.common.copybook.CopybookService;
 import org.eclipse.lsp.cobol.common.error.ErrorCodes;
 import org.eclipse.lsp.cobol.common.message.MessageService;
@@ -36,6 +35,7 @@ import org.eclipse.lsp.cobol.lsp.analysis.AsyncAnalysisService;
 import org.eclipse.lsp.cobol.lsp.events.queries.CodeActionQuery;
 import org.eclipse.lsp.cobol.lsp.handlers.text.CodeActionHandler;
 import org.eclipse.lsp.cobol.lsp.handlers.workspace.DidChangeConfigurationHandler;
+import org.eclipse.lsp.cobol.lsp.handlers.workspace.DidChangeWatchedFilesHandler;
 import org.eclipse.lsp.cobol.lsp.handlers.workspace.ExecuteCommandHandler;
 import org.eclipse.lsp.cobol.service.copybooks.CopybookNameService;
 import org.eclipse.lsp.cobol.service.settings.layout.CodeLayoutStore;
@@ -55,7 +55,6 @@ import org.junit.jupiter.api.Test;
 class WorkspaceServiceTest {
   /** Test of the workspace/executeCommand entry point. */
   private DisposableLSPStateService stateService;
-  private UriDecodeService uriDecodeService = mock(UriDecodeService.class);
 
   @BeforeEach
   void initialize() {
@@ -66,12 +65,9 @@ class WorkspaceServiceTest {
   void testExecuteCommand() throws InterruptedException {
     CopybookService copybookService = mock(CopybookService.class);
     String copybookName = "COPYBOOK";
-    SubroutineService subroutineService = mock(SubroutineService.class);
     CopybookNameService copybookNameService = mock(CopybookNameService.class);
     MessageService messageService = mock(MessageService.class);
     AsyncAnalysisService asyncAnalysisService = mock(AsyncAnalysisService.class);
-    SourceUnitGraph documentGraph = mock(SourceUnitGraph.class);
-    LspMessageBroker messageDispatcher = mock(LspMessageBroker.class);
 
     DidChangeConfigurationHandler didChangeConfigurationHandler = new DidChangeConfigurationHandler(stateService,
             null,
@@ -82,15 +78,14 @@ class WorkspaceServiceTest {
             messageService,
             asyncAnalysisService, getMockLayoutStore(), copybookService);
     ExecuteCommandHandler executeCommandHandler = new ExecuteCommandHandler(stateService, asyncAnalysisService);
+    DidChangeWatchedFilesHandler didChangeWatchedFilesHandler = mock(DidChangeWatchedFilesHandler.class);
 
     LspMessageBroker lspMessageBroker = new LspMessageBroker();
     WorkspaceService service = new CobolWorkspaceServiceImpl(
             lspMessageBroker,
             executeCommandHandler,
-            documentGraph,
             didChangeConfigurationHandler,
-            asyncAnalysisService,
-            uriDecodeService);
+            didChangeWatchedFilesHandler);
     ((LspEventConsumer) service).startConsumer();
     CompletableFuture<Object> result =
         service.executeCommand(
@@ -127,15 +122,14 @@ class WorkspaceServiceTest {
             null,
             asyncAnalysisService, getMockLayoutStore(), copybookService);
     ExecuteCommandHandler executeCommandHandler = new ExecuteCommandHandler(stateService, asyncAnalysisService);
+    DidChangeWatchedFilesHandler didChangeWatchedFilesHandler = mock(DidChangeWatchedFilesHandler.class);
 
     LspMessageBroker lspMessageBroker = new LspMessageBroker();
-    SourceUnitGraph documentGraph = mock(SourceUnitGraph.class);
     WorkspaceService service = new CobolWorkspaceServiceImpl(
             lspMessageBroker,
             executeCommandHandler,
-            documentGraph,
             didChangeConfigurationHandler,
-            asyncAnalysisService, uriDecodeService);
+            didChangeWatchedFilesHandler);
     ((LspEventConsumer) service).startConsumer();
 
     CompletableFuture<Object> result =
@@ -162,20 +156,18 @@ class WorkspaceServiceTest {
   /** Test configuration change method is delegated to the handler */
   @Test
   void testChangeConfigurationDelegatesRequestToHandler() throws InterruptedException {
-    AsyncAnalysisService asyncAnalysisService = mock(AsyncAnalysisService.class);
     DidChangeConfigurationHandler didChangeConfigurationHandler = mock(DidChangeConfigurationHandler.class);
     ExecuteCommandHandler executeCommandHandler = mock(ExecuteCommandHandler.class);
+    DidChangeWatchedFilesHandler didChangeWatchedFilesHandler = mock(DidChangeWatchedFilesHandler.class);
     doNothing().when(didChangeConfigurationHandler).didChangeConfiguration(any(DidChangeConfigurationParams.class));
 
     LspMessageBroker lspMessageBroker = new LspMessageBroker();
-    SourceUnitGraph documentGraph = mock(SourceUnitGraph.class);
     WorkspaceService workspaceService =
         new CobolWorkspaceServiceImpl(
             lspMessageBroker,
             executeCommandHandler,
-            documentGraph,
             didChangeConfigurationHandler,
-            asyncAnalysisService, uriDecodeService);
+            didChangeWatchedFilesHandler);
     ((LspEventConsumer) workspaceService).startConsumer();
     doNothing().when(didChangeConfigurationHandler).didChangeConfiguration(any(DidChangeConfigurationParams.class));
     DidChangeConfigurationParams didChangeConfigurationParams = new DidChangeConfigurationParams(new Object());
@@ -222,7 +214,6 @@ class WorkspaceServiceTest {
 
   private void checkWatchers(FileEvent event) throws InterruptedException {
     CopybookService copybookService = mock(CopybookService.class);
-    SubroutineService subroutineService = mock(SubroutineService.class);
     CopybookNameService copybookNameService = mock(CopybookNameService.class);
     AsyncAnalysisService asyncAnalysisService = mock(AsyncAnalysisService.class);
 
@@ -232,16 +223,15 @@ class WorkspaceServiceTest {
 
     ExecuteCommandHandler executeCommandHandler =
         new ExecuteCommandHandler(stateService, asyncAnalysisService);
+    DidChangeWatchedFilesHandler didChangeWatchedFilesHandler = mock(DidChangeWatchedFilesHandler.class);
 
     LspMessageBroker lspMessageBroker = new LspMessageBroker();
-    SourceUnitGraph documentGraph = mock(SourceUnitGraph.class);
     WorkspaceService service =
         new CobolWorkspaceServiceImpl(
             lspMessageBroker,
             executeCommandHandler,
-            documentGraph,
             didChangeConfigurationHandler,
-            asyncAnalysisService, uriDecodeService);
+            didChangeWatchedFilesHandler);
 
     ((LspEventConsumer) service).startConsumer();
     DidChangeWatchedFilesParams params = new DidChangeWatchedFilesParams(singletonList(event));

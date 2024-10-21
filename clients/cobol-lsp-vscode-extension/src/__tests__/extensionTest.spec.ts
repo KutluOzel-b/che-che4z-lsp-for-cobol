@@ -37,7 +37,7 @@ jest.mock("../services/Settings", () => ({
       .fn()
       .mockReturnValueOnce(undefined)
       .mockReturnValue("JAVA"),
-    getSnippetsForCobol: jest.fn().mockReturnValue([]),
+    getSnippetsForCobol: jest.fn().mockReturnValue(Promise.resolve([])),
     getDialects: jest.fn().mockReturnValue([]),
   },
 }));
@@ -60,7 +60,11 @@ jest.mock("vscode", () => ({
     registerCodeActionsProvider: jest.fn(),
     registerCompletionItemProvider: jest.fn(),
   },
+  Position: class {
+    constructor(private line: number, private character: number) {}
+  },
   window: {
+    visibleTextEditors: [],
     setStatusBarMessage: jest
       .fn()
       .mockImplementation(
@@ -178,6 +182,7 @@ describe("Check plugin extension for cobol fails.", () => {
 });
 
 describe("Check recognition of COBOL from first line", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const manifest = require("../../package.json");
   const firstLine = manifest.contributes.languages[0].firstLine;
   const cobol = expect.stringMatching(firstLine);

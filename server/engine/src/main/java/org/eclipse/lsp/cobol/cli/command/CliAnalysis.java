@@ -40,6 +40,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.lsp.cobol.cli.di.CliModule;
 import org.eclipse.lsp.cobol.cli.modules.CliClientProvider;
 import org.eclipse.lsp.cobol.common.dialects.CobolLanguageId;
+import org.eclipse.lsp.cobol.common.model.tree.RootNode;
+import org.eclipse.lsp.cobol.common.processor.ProcessingPhase;
+import org.eclipse.lsp.cobol.dialects.ibm.ProcessingResult;
 import picocli.CommandLine;
 
 /**
@@ -69,8 +72,20 @@ public class CliAnalysis implements Callable<Integer> {
     )
     private boolean hideDiagnostics;
 
+    @CommandLine.Option(
+            description = "Add AST to output",
+            names = {"--ast"}
+    )
+    private boolean printTree = false;
+
     @CommandLine.ArgGroup(exclusive = false)
     private ExtendedSourceConfig extendedSourceConfig = new ExtendedSourceConfig();
+
+    @CommandLine.Option(
+            description = "Repeat analysis",
+            names = {"--repeat"},
+            defaultValue = "1")
+    private int repeat = 1;
 
 
     @Override
@@ -92,25 +107,48 @@ public class CliAnalysis implements Callable<Integer> {
 
         cliClientProvider.setCpyPaths(createCopybooksPaths());
         cliClientProvider.setCpyExt(createCopybooksExtensions());
-        JsonObject result = new JsonObject();
-        result.addProperty("uri", (inputConfig.useStdin) ? "N/A (User Input)" : inputConfig.src.toURI().toString());
-        result.addProperty("language", dialect.getId());
         try {
-            Cli.Result analysisResult = parent.runAnalysis(inputConfig.src, dialect, diCtx, true);
-            parent.addTiming(result, analysisResult.ctx.getBenchmarkSession());
-            if (!hideDiagnostics) {
-                generateDiagnostics(analysisResult, result);
-            }
-            collectGcAndMemoryStats(result);
-            System.out.println(CliUtils.GSON.toJson(result));
+            for (int i = 0; i < repeat; ++i) {
+                JsonObject result = createResultJson();
 
-            handleExtendedSource(analysisResult);
+                Cli.Result analysisResult = parent.runAnalysis(inputConfig.src, dialect, diCtx, true, printTree);
+                parent.addTiming(result, analysisResult.ctx.getBenchmarkSession());
+                if (printTree) {
+                    RootNode root = ((ProcessingResult) analysisResult.pipelineResult.getLastStageResult()
+                            .getData()).getRootNode();
+                    JsonObject asts = new JsonObject();
+                    asts.add("START", analysisResult.ctx.getAstChanges().get(null));
+                    for (ProcessingPhase phase: ProcessingPhase.values()) {
+                        asts.add(phase.name(), analysisResult.ctx.getAstChanges().get(phase));
+                    }
+
+                    result.add("asts", asts);
+                }
+
+                if (!hideDiagnostics) {
+                    generateDiagnostics(analysisResult, result);
+                }
+                collectGcAndMemoryStats(result);
+                System.out.println(CliUtils.GSON.toJson(result));
+
+                handleExtendedSource(analysisResult);
+            }
             return Cli.SUCCESS;
         } catch (Exception e) {
+            JsonObject result = createResultJson();
             result.addProperty("crash", e.getMessage() != null && e.getMessage().isEmpty() ? "error" : e.getMessage());
             System.out.println(CliUtils.GSON.toJson(result));
             return Cli.FAILURE;
         }
+    }
+
+    private JsonObject createResultJson() {
+        JsonObject result = new JsonObject();
+
+        result.addProperty("uri", (inputConfig.useStdin) ? "N/A (User Input)" : inputConfig.src.toURI().toString());
+        result.addProperty("language", dialect.getId());
+
+        return result;
     }
 
     private void generateDiagnostics(Cli.Result analysisResult, JsonObject result) {

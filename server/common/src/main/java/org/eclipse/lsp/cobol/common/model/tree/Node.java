@@ -33,11 +33,12 @@ import java.util.stream.Stream;
 @EqualsAndHashCode
 public abstract class Node {
   @Setter protected Locality locality;
+  @Setter protected String text;
   private final NodeType nodeType;
   private final String dialect;
 
   @EqualsAndHashCode.Exclude private final List<Node> children = new CopyOnWriteArrayList<>();
-  @EqualsAndHashCode.Exclude @ToString.Exclude @Setter private Node parent;
+  @EqualsAndHashCode.Exclude @ToString.Exclude @Setter private transient Node parent;
 
   protected Node(Locality location, NodeType nodeType, String dialect) {
     this.locality = location;
@@ -69,6 +70,18 @@ public abstract class Node {
   public void addChild(Node node) {
     node.setParent(this);
     children.add(node);
+  }
+
+
+  /**
+   * Add a child node to this node and updates the child parent link.
+   *
+   * @param index index of insertion
+   * @param node a child node.
+   */
+  public void addChildAt(int index, Node node) {
+    node.setParent(this);
+    children.add(index, node);
   }
 
   /**

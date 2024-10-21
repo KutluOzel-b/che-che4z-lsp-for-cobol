@@ -34,8 +34,6 @@ class TestExtraneousInputEOFExpecting {
           + "        PROCEDURE DIVISION.\r\n"
           + "           if (1 > 0) NEXT SENTENCE{|1}"; // No dot at the end of file
 
-  private static final String MESSAGE = "Unexpected end of file";
-
   @Test
   void test() {
     UseCaseEngine.runTest(
@@ -44,6 +42,8 @@ class TestExtraneousInputEOFExpecting {
         ImmutableMap.of(
             "1",
             new Diagnostic(
-                new Range(), MESSAGE, DiagnosticSeverity.Error, ErrorSource.PARSING.getText())));
+                new Range(), "A period was assumed before \"<EOF>\".",
+                    DiagnosticSeverity.Error,
+                    ErrorSource.PARSING.getText())));
   }
 }

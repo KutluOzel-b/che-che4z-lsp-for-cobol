@@ -36,7 +36,7 @@ import { initSmartTab, RangeTabShiftStore } from "./commands/SmartTabCommand";
 import { DialectRegistry } from "./services/DialectRegistry";
 import { LanguageClientService } from "./services/LanguageClientService";
 import { TelemetryService } from "./services/reporter/TelemetryService";
-import { configHandler, SettingsService } from "./services/Settings";
+import { lspConfigHandler, SettingsService } from "./services/Settings";
 import {
   pickSnippet,
   SnippetCompletionProvider,
@@ -49,7 +49,7 @@ import { Utils } from "./services/util/Utils";
 import { getE4EAPI } from "./services/copybook/E4ECopybookService";
 
 interface __AnalysisApi {
-  analysis(uri: string, text: string): Promise<any>;
+  analysis(uri: string, text: string, pos?: vscode.Position): Promise<any>;
 }
 
 let languageClientService: LanguageClientService;
@@ -164,7 +164,7 @@ export async function activate(
   );
   languageClientService.addRequestHandler(
     "workspace/configuration",
-    configHandler,
+    lspConfigHandler,
   );
 
   await languageClientService.start();
@@ -188,10 +188,25 @@ export async function activate(
       },
     },
     version: API_VERSION,
-    analysis(uri: string, text: string): Promise<any> {
-      return languageClientService.retrieveAnalysis(uri, text);
+    analysis(uri: string, text: string, pos?: vscode.Position): Promise<any> {
+      return languageClientService.retrieveAnalysis(
+        uri,
+        text,
+        pos || findPosition(uri),
+      );
     },
   };
+}
+function findPosition(uri: string): vscode.Position {
+  for (const e of vscode.window.visibleTextEditors) {
+    if (e.document.uri.toString() === uri) {
+      return e.selection.start;
+    }
+  }
+  outputChannel.appendLine(
+    "Cant find editor for " + uri + " the first program/function will be used.",
+  );
+  return new vscode.Position(0, 0);
 }
 
 export function deactivate() {

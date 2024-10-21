@@ -24,7 +24,7 @@
           "uri": "fake/path",
           "start": {
             "line": 16,
-            "character": 20
+            "character": 12
           },
           "end": {
             "line": 16,
@@ -34,7 +34,7 @@
       },
       {
         "name": "SEC1",
-        "snippet": "SEC1 SECTION.\r\n       BP.\r\n           DISPLAY \u0027BP\u0027.\r\n       CP.\r\n           DISPLAY \u0027CP\u0027.",
+        "snippet": "       SEC1 SECTION.\r\n       BP.\r\n           DISPLAY \u0027BP\u0027.\r\n       CP.\r\n           DISPLAY \u0027CP\u0027.",
         "type": "section",
         "location": {
           "uri": "fake/path",
@@ -49,7 +49,7 @@
         },
         "children": [
           {
-            "snippet": "BP.\r\n           DISPLAY \u0027BP\u0027.",
+            "snippet": "       BP.\r\n           DISPLAY \u0027BP\u0027.",
             "name": "BP",
             "type": "paragraph",
             "location": {
@@ -62,10 +62,26 @@
                 "line": 19,
                 "character": 25
               }
-            }
+            },
+            "children": [
+              {
+                "type": "statement",
+                "location": {
+                  "uri": "fake/path",
+                  "start": {
+                    "line": 19,
+                    "character": 12
+                  },
+                  "end": {
+                    "line": 19,
+                    "character": 24
+                  }
+                }
+              }
+            ]
           },
           {
-            "snippet": "CP.\r\n           DISPLAY \u0027CP\u0027.",
+            "snippet": "       CP.\r\n           DISPLAY \u0027CP\u0027.",
             "name": "CP",
             "type": "paragraph",
             "location": {
@@ -78,13 +94,29 @@
                 "line": 21,
                 "character": 25
               }
-            }
+            },
+            "children": [
+              {
+                "type": "statement",
+                "location": {
+                  "uri": "fake/path",
+                  "start": {
+                    "line": 21,
+                    "character": 12
+                  },
+                  "end": {
+                    "line": 21,
+                    "character": 24
+                  }
+                }
+              }
+            ]
           }
         ]
       },
       {
         "name": "SEC2",
-        "snippet": "SEC2 SECTION.\r\n       EP.\r\n           DISPLAY \u0027EP\u0027.",
+        "snippet": "       SEC2 SECTION.\r\n       EP.\r\n           DISPLAY \u0027EP\u0027.",
         "type": "section",
         "location": {
           "uri": "fake/path",
@@ -99,7 +131,7 @@
         },
         "children": [
           {
-            "snippet": "EP.\r\n           DISPLAY \u0027EP\u0027.",
+            "snippet": "       EP.\r\n           DISPLAY \u0027EP\u0027.",
             "name": "EP",
             "type": "paragraph",
             "location": {
@@ -112,7 +144,23 @@
                 "line": 24,
                 "character": 25
               }
-            }
+            },
+            "children": [
+              {
+                "type": "statement",
+                "location": {
+                  "uri": "fake/path",
+                  "start": {
+                    "line": 24,
+                    "character": 12
+                  },
+                  "end": {
+                    "line": 24,
+                    "character": 24
+                  }
+                }
+              }
+            ]
           }
         ]
       }
