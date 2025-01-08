@@ -51,14 +51,14 @@ public class TestCICSCancel {
             "CANCEL REQID({$varFour}) TRANSID({$varFour}) SYSID({$varFour}) ";
 
     private static final String CANCEL_REQID_ACTIVITY_INVALID =
-            "CANCEL REQID({$varFour}) {ACTIVITY | error} ";
+            "CANCEL REQID({$varFour}) {ACTIVITY|error} ";
     private static final String CANCEL_TRANSID_INVALID =
-            "CANCEL {TRANSID(100) | errorTransid} ";
+            "CANCEL {_TRANSID({$varOne}) |errorTransid_} ";
     private static final String CANCEL_ACQACTIVITY_ACQPROCESS_INVALID =
-            "CANCEL {ACQACTIVITY | errorAcqactivityAcqProcess} {ACQPROCESS | errorAcqactivityAcqProcess2} ";
+            "CANCEL {ACQACTIVITY|errorAcqactivityAcqProcess} {ACQPROCESS|errorAcqactivityAcqProcess2} ";
 
     private static final String CANCEL_ACTIVITY_ACQPROCESS_INVALID =
-            "CANCEL {ACTIVITY | errorActivityAcqProcess }(100) {ACQPROCESS | errorActivityAcqProcess2} ";
+            "CANCEL {_ACTIVITY|errorActivityAcqProcess_}({$varFour}) {_ACQPROCESS|errorActivityAcqProcess2_} ";
     @Test
     void testCancelActivityValid() {
 
@@ -119,13 +119,13 @@ public class TestCICSCancel {
                 ImmutableMap.of(
                         "errorAcqactivityAcqProcess",
                         new Diagnostic(
-                                new Range(new Position(15, 12), new Position(15, 22)),
+                                new Range(),
                                 "Exactly one option required, options are mutually exclusive: ACTIVITY or ACQACTIVITY or ACQPROCESS",
                                 DiagnosticSeverity.Error,
                                 ErrorSource.PARSING.getText()),
                         "errorAcqactivityAcqProcess2",
                         new Diagnostic(
-                                new Range(new Position(14, 12), new Position(14, 23)),
+                                new Range(),
                                 "Exactly one option required, options are mutually exclusive: ACTIVITY or ACQACTIVITY or ACQPROCESS",
                                 DiagnosticSeverity.Error,
                                 ErrorSource.PARSING.getText()));
@@ -143,7 +143,7 @@ public class TestCICSCancel {
                                 ErrorSource.PARSING.getText()),
                         "errorActivityAcqProcess2",
                         new Diagnostic(
-                                new Range(new Position(15, 12), new Position(15, 22)),
+                                new Range(),
                                 "Exactly one option required, options are mutually exclusive: ACTIVITY or ACQACTIVITY or ACQPROCESS",
                                 DiagnosticSeverity.Error,
                                 ErrorSource.PARSING.getText()));

@@ -31,23 +31,23 @@ public class TestCICSBif {
     private static final String BIF_DEEDIT_FIELD_VALID =
             "BIF DEEDIT FIELD({$varFour})";
     private static final String BIF_DEEDIT_FIELD_LENGTH_VALID =
-            "BIF DEEDIT FIELD({$varFour}) LENGTH(100)";
+            "BIF DEEDIT FIELD({$varFour}) LENGTH({$varOne})";
     private static final String BIF_DEEDIT_INVALID =
             "BIF {DEEDIT|errorMissingField }";
     private static final String BIF_DIGEST_RECORD_RECORDLEN_RESULT_VALID =
-            "BIF DIGEST RECORD(100) RECORDLEN(100) RESULT({$varFour})";
+            "BIF DIGEST RECORD({$varFour}) RECORDLEN({$varOne}) RESULT({$varFour})";
     private static final String BIF_DIGEST_RECORD_RECORDLEN_HEX_RESULT_VALID =
-            "BIF DIGEST RECORD(100) RECORDLEN(100) HEX RESULT({$varFour})";
+            "BIF DIGEST RECORD({$varOne}) RECORDLEN({$varOne}) HEX RESULT({$varFour})";
     private static final String BIF_DIGEST_RECORD_RECORDLEN_BINARY_RESULT_VALID =
-            "BIF DIGEST RECORD(100) RECORDLEN(100) BINARY RESULT({$varFour})";
+            "BIF DIGEST RECORD({$varOne}) RECORDLEN({$varOne}) BINARY RESULT({$varFour})";
     private static final String BIF_DIGEST_RECORD_RECORDLEN_BASE64_RESULT_VALID =
-            "BIF DIGEST RECORD(100) RECORDLEN(100) BASE64 RESULT({$varFour})";
+            "BIF DIGEST RECORD({$varOne}) RECORDLEN({$varOne}) BASE64 RESULT({$varFour})";
     private static final String BIF_DIGEST_RECORD_RECORDLEN_DIGESTTYPE_RESULT_VALID =
-            "BIF DIGEST RECORD(100) RECORDLEN(100) DIGESTTYPE({$varFour}) RESULT({$varFour})";
+            "BIF DIGEST RECORD({$varOne}) RECORDLEN({$varOne}) DIGESTTYPE({$varFour}) RESULT({$varFour})";
     private static final String BIF_DIGEST_DIGESTTYPE_INVALID =
             "BIF DIGEST RESULT({$varFour}) RECORD({$varFour}) RECORDLEN({$varFour}) {HEX|errorDigestType} {BASE64|errorDigestType2}";
     private static final String BIF_DIGEST_RESULT_MISSING_INVALID =
-            "BIF {_DIGEST RECORD(100) RECORDLEN(100)|errorResultMissing_}";
+            "BIF {_DIGEST RECORD({$varOne}) RECORDLEN(100)|errorResultMissing_}";
     @Test
     void testBifDeeditField() {
         CICSTestUtils.noErrorTest(BIF_DEEDIT_FIELD_VALID);
@@ -120,21 +120,3 @@ public class TestCICSBif {
         CICSTestUtils.errorTest(BIF_DIGEST_RESULT_MISSING_INVALID, expectedDiagnostic);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

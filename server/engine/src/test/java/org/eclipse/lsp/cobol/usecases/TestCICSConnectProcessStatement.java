@@ -39,10 +39,10 @@ public class TestCICSConnectProcessStatement {
             "CONNECT PROCESS CONVID({$varFour}) PARTNER({$varFour}) "
                     + "SYNCLEVEL({$varFour}) ";
     private static final String CONNECT_PROCESS_INVALID =
-            "CONNECT PROCESS SESSION({$varFour}) SYNCLEVEL({$varFour}) {PARTNER | errorMissingProc | errorPartner}(100)";
+            "CONNECT PROCESS SESSION({$varFour}) SYNCLEVEL({$varFour}) {PARTNER|errorMissingProc|errorPartner}(100)";
     private static final String CONNECT_PROCESS_PIPLENGTH_INVALID =
-            "CONNECT {_PROCESS CONVID(100) PIPLENGTH(100) \n "
-                   + "SYNCLEVEL(100) PROCNAME(100)|errorPiplength_}";
+            "CONNECT {_PROCESS CONVID({$varFour}) PIPLENGTH({$varTwo})"
+                   + "SYNCLEVEL({$varFour}) PROCNAME(1)|errorPiplength_}";
 
     @Test
     void testConnectProcessValid() {

@@ -82,7 +82,7 @@ public class TestCicsDelayStatement {
   private static final String DELAY_VALID_ALL =
           "DELAY FOR HOURS(100) MINUTES(20) SECONDS(10) MILLISECS(1)";
   private static final String DELAY_FOR_UNTIL_INVALID =
-          "DELAY { FOR | error2 } HOURS(1) {UNTIL | error} ";
+          "DELAY {FOR|error2} HOURS(1) {UNTIL|error} ";
   private static final String DELAY_INTERVAL_TIME_INVALID =
           "DELAY { INTERVAL | errorIntervalTime2 }(100) {TIME | errorIntervalTime }(100)";
 
@@ -106,7 +106,7 @@ public class TestCicsDelayStatement {
             ImmutableMap.of(
                     "error",
                     new Diagnostic(
-                            new Range(new Position(16, 12), new Position(16, 17)),
+                            new Range(),
                             "Exactly one option required, options are mutually exclusive: INTERVAL, TIME, UNTIL, FOR",
                             DiagnosticSeverity.Error,
                             ErrorSource.PARSING.getText()),
