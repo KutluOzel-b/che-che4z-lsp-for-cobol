@@ -19,7 +19,7 @@ compilerDirective: (.*? compilerOpts)* .*? EOF;
 cicsExecBlock: EXEC_CICS (allCicsRule)* END_EXEC ;
 
 allCicsRule: cics_send | cics_receive | cics_add | cics_address | cics_allocate | cics_asktime | cics_assign | cics_bif |
-                       cics_build | cics_cancel | cics_change  | cics_check | cics_connect | cics_converttime |
+                       cics_build | cics_cancel | cics_change | cics_check | cics_connect | cics_converttime |
                        cics_define | cics_delay | cics_delete | cics_deleteq | cics_deq | cics_document | cics_dump | cics_endbr |
                        cics_endbrowse | cics_enq | cics_enter | cics_extract | cics_force | cics_formattime | cics_free |
                        cics_freemain | cics_get | cics_getmain | cics_getmain64 | cics_getnext | cics_handle | cics_ignore | cics_inquire |
@@ -334,11 +334,11 @@ cics_dump_transaction_from: (FROM cics_data_area | cics_length_flength | cics_ha
 cics_dump_code_opts: (COMPLETE | TRT | TASK | STORAGE | PROGRAM | TERMINAL | TABLES | FCT | PCT | PPT | SIT | TCT | DUMPID cics_data_area | cics_handle_response)+;
 cics_dump_transaction_segmentlist: ((SEGMENTLIST | LENGTHLIST | NUMSEGMENTS) cics_data_area | cics_handle_response)+;
 
-/** ENDBR */
-cics_endbr: ENDBR ((FILE | DATASET) cics_name | REQID cics_data_value | SYSID cics_data_area | cics_handle_response)*;
-
-/** ENDBROWSE (all of them) */
-cics_endbrowse: ENDBROWSE (ACTIVITY | CONTAINER | EVENT | PROCESS | TIMER | (BROWSETOKEN | RETCODE) cics_data_value | cics_handle_response)*;
+/** ENDBR / ENDBROWSE */
+cics_endbr: ENDBR cics_endbr_opts;
+cics_endbr_opts: ((FILE | DATASET) cics_name | REQID cics_data_value | SYSID cics_data_area | cics_handle_response)+;
+cics_endbrowse: ENDBROWSE cics_endbrowse_opts;
+cics_endbrowse_opts: (ACTIVITY | CONTAINER | EVENT | PROCESS | TIMER | (BROWSETOKEN | RETCODE) cics_data_value | cics_handle_response)+;
 
 /** ENQ */
 cics_enq: ENQ cics_enq_opts;
