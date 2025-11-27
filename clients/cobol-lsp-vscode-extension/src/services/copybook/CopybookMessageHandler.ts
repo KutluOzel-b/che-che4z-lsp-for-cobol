@@ -24,6 +24,7 @@ export async function readFileContent(
     (doc) => doc.uri.toString() === fileUri,
   );
   if (openFile) {
+    vscode.languages.setTextDocumentLanguage(openFile, "cobol");
     return openFile.getText();
   }
   try {

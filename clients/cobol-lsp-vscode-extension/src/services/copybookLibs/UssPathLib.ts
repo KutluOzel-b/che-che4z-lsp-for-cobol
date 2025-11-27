@@ -20,13 +20,21 @@ import { USS } from "../../constants";
 import * as vscode from "vscode";
 import { externalApis } from "../ExternalAPIsService";
 import { ZoweLib } from "./ZoweLib";
+import { extractTarPath, isTarPath } from "../util/Utils";
 
 export class UssPathLib extends ZoweLib implements CopybookLib {
+  private internalPath: string | undefined;
+  private isTar: boolean = false;
   constructor(
     private uss: string,
     profile?: string,
   ) {
     super(profile);
+    if (isTarPath(uss)) {
+      ({ tarPath: this.uss, internalPath: this.internalPath } =
+        extractTarPath(uss));
+      this.isTar = true;
+    }
   }
 
   static create(config: LibDefinition) {
@@ -50,6 +58,18 @@ export class UssPathLib extends ZoweLib implements CopybookLib {
 
     if (!(await this.configCheck(documentUri))) {
       return;
+    }
+
+    //TODO: check if tar, download tar, check if member exists.
+    // create uri
+    // create a uri resolver for tar
+
+    if (this.isTar) {
+      // if file download exists, do not download
+      if (!(await externalApis?.isPresentLocally(this.uss))) {
+        await externalApis.ussService?.downloadFile(this.uss, profile);
+      }
+      // return await externalApis.getMemberFromTar(externalApis.dsnService, this.dsn, this.internalPath, copybookName);
     }
 
     const allowedExtensions = await SettingsService.getCopybookExtension(

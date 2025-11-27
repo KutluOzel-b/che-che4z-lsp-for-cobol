@@ -23,6 +23,7 @@ import { getE4EAPI } from "./copybook/E4ECopybookService";
 import { Utils } from "./util/Utils";
 import { clearProfiles } from "./util/ProfileUtils";
 import { outputChannel } from "./util/OutputChannel";
+import { TarFileContentProvider } from "../provider/TarFileContentProvider";
 
 export type { ExternalAPIsService };
 
@@ -33,6 +34,7 @@ const diagnosticCollection: vscode.DiagnosticCollection =
 export async function initializeExternalAPIs(
   storagePath: vscode.Uri,
   configurationInvalidation?: () => unknown,
+  cobolTarContentProvider?: TarFileContentProvider,
 ) {
   const maybeE4E = await getE4EAPI();
   const maybeZowe = await Utils.getZoweExplorerAPI();
@@ -42,6 +44,7 @@ export async function initializeExternalAPIs(
     maybeZowe && "api" in maybeZowe ? maybeZowe.api : undefined,
     maybeE4E && "api" in maybeE4E ? maybeE4E.api : undefined,
     configurationInvalidation,
+    cobolTarContentProvider,
   );
 
   if (maybeZowe && "futureApi" in maybeZowe) {
@@ -86,15 +89,18 @@ class ExternalAPIsService {
   dsnService?: CopybookDownloaderForDsn;
   ussService?: CopybookDownloaderForUss;
   e4eDownloader?: CopybookDownloaderForE4E;
+  tarProvider?: TarFileContentProvider;
 
   constructor(
     private storagePath: vscode.Uri,
     explorer?: IApiRegisterClient,
     e4e?: E4E,
     private configurationInvalidation?: () => unknown,
+    cobolTarContentProvider?: TarFileContentProvider,
   ) {
     if (e4e) this.e4eAppeared(e4e);
     if (explorer) this.explorerAppeared(explorer);
+    if (cobolTarContentProvider) this.tarProvider = cobolTarContentProvider;
   }
 
   /**
@@ -104,11 +110,23 @@ class ExternalAPIsService {
     this.dsnService?.clearMemberListCache();
     this.ussService?.clearMemberListCache();
     this.e4eDownloader?.clearProfiles();
+    this.tarProvider?.clearCache();
   }
 
   clearProfiles() {
     this.e4eDownloader?.clearProfiles();
     clearProfiles();
+  }
+
+  public async isPresentLocally(inputPath: string) {
+    try {
+      await vscode.workspace.fs.stat(
+        vscode.Uri.joinPath(this.storagePath, inputPath),
+      );
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   public handleAsEndevorElement(documentUri: string) {
@@ -128,8 +146,8 @@ class ExternalAPIsService {
   }
 
   public explorerAppeared(api: IApiRegisterClient) {
-    this.ussService = new CopybookDownloaderForUss();
-    this.dsnService = new CopybookDownloaderForDsn();
+    this.ussService = new CopybookDownloaderForUss(this.storagePath, api);
+    this.dsnService = new CopybookDownloaderForDsn(this.storagePath, api);
     diagnosticCollection.clear();
     if (api.onProfileUpdated) {
       api.onProfileUpdated((profile: IProfileLoaded) => {

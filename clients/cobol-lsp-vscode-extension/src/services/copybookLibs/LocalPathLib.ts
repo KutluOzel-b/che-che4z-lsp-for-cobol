@@ -17,13 +17,22 @@ import { LibDefinition } from "../ProcessorGroupsLoader";
 import { SettingsService } from "../Settings";
 import { getVariablesFromUri } from "../util/FSUtils";
 import { outputChannel } from "../util/OutputChannel";
+import { extractTarPath, getUris, isTarPath } from "../util/Utils";
 import CopybookLib from "./CopybookLib";
 import * as vscode from "vscode";
 
 export const localCopybooks = new LocalFilesystemResourceService();
 
 export default class LocalPathLib implements CopybookLib {
-  constructor(private path: string) {}
+  private internalPath: string | undefined;
+  private isTar: boolean = false;
+  constructor(private path: string) {
+    if (isTarPath(path)) {
+      ({ tarPath: this.path, internalPath: this.internalPath } =
+        extractTarPath(path));
+      this.isTar = true;
+    }
+  }
 
   static create(config: LibDefinition) {
     if (typeof config === "string") {
@@ -31,30 +40,20 @@ export default class LocalPathLib implements CopybookLib {
     }
   }
 
-  private getUris(documentUri: vscode.Uri) {
-    const variables = getVariablesFromUri(documentUri, false);
-    const evaluatedPath = SettingsService.evaluateVariables(
-      this.path,
-      variables,
-    );
-
-    return SettingsService.prepareLocalSearchUris(
-      [evaluatedPath],
-      vscode.workspace.workspaceFolders ?? [],
-    );
-  }
-
   async resolveCopybookUri(
     copybookName: string,
     documentUri: vscode.Uri,
     dialect: string,
   ) {
-    const uris = this.getUris(documentUri);
+    const uris = getUris(documentUri, this.path);
 
     const allowedExtensions = await SettingsService.getCopybookExtension(
       documentUri,
       dialect,
     );
+
+    // TODO: search in tar file locally and return if found or return undefined
+
     const promises = uris.map(async (uri) => {
       return await localCopybooks.searchDirectory(
         uri,
@@ -75,7 +74,7 @@ export default class LocalPathLib implements CopybookLib {
     documentUri: vscode.Uri,
     dialect: string,
   ): Promise<string[]> {
-    const uris = this.getUris(documentUri);
+    const uris = getUris(documentUri, this.path);
 
     const allowedExtensions = await SettingsService.getCopybookExtension(
       documentUri,

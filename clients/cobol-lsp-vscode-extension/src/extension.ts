@@ -77,6 +77,7 @@ import { outputChannel } from "./services/util/OutputChannel";
 import { DialectService } from "./dialect/DialectService";
 import { createSampleConfiguration } from "./commands/CreateSampleConfiguration";
 import { RENUM_LEFT, RENUM_RIGHT, RenumHandler } from "./commands/RenumCommand";
+import { TarFileContentProvider } from "./provider/TarFileContentProvider";
 
 interface __AnalysisApi {
   analysis(uri: string, text: string, pos?: vscode.Position): Promise<unknown>;
@@ -105,6 +106,13 @@ export async function activate(
   initSmartTab(context);
 
   let externalApis: ExternalAPIsService | undefined = undefined;
+  const cobolTarContentProvider = new TarFileContentProvider();
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider(
+      TarFileContentProvider.SCHEME,
+      cobolTarContentProvider,
+    ),
+  );
 
   const languageClientService = await initializeLanguageClientService(context, {
     executeCommand: (command, args, next) => {
@@ -118,6 +126,7 @@ export async function activate(
   externalApis = await initializeExternalAPIs(
     context.globalStorageUri,
     languageClientService.invalidateConfiguration,
+    cobolTarContentProvider,
   );
 
   const analysisService = new ControlFlowAnalysisService(

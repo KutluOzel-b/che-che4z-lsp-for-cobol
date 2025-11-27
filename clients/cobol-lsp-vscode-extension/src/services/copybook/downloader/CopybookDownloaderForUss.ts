@@ -12,6 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 import { splitFilename } from "../../util/FSUtils";
+import { loadProfile } from "../../util/Utils";
 import {
   MemberCacheItem,
   ZoweExplorerDownloader,
@@ -22,8 +23,8 @@ import * as vscode from "vscode";
  * Copybook downloader from USS using Zowe Explorer
  */
 export class CopybookDownloaderForUss extends ZoweExplorerDownloader {
-  constructor() {
-    super();
+  constructor(storagePath: vscode.Uri, explorerAPI: IApiRegisterClient) {
+    super(storagePath, explorerAPI);
   }
 
   public async getAllMembers(
@@ -71,5 +72,12 @@ export class CopybookDownloaderForUss extends ZoweExplorerDownloader {
     );
 
     return members;
+  }
+
+  public async downloadFile(ussPath: string, profile: string) {
+    const loadedProfile = loadProfile(profile, this.explorerAPI);
+    await this.explorerAPI
+      .getUssApi(loadedProfile)
+      .getContents(`${ussPath}`, this.getDownloadOptions(ussPath).apiOptions);
   }
 }

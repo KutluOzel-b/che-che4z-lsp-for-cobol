@@ -14,6 +14,10 @@
 
 import * as vscode from "vscode";
 import { ResolvedProfile } from "../../type/e4eApi";
+import { TAR_PREFIX } from "../../constants";
+import { CopybookURI } from "../copybook/CopybookURI";
+import { getVariablesFromUri } from "./FSUtils";
+import { SettingsService } from "../Settings";
 
 async function safeActivate(ext: vscode.Extension<unknown>) {
   try {
@@ -130,4 +134,73 @@ export function asArray<T>(input: T | T[]): T[] {
     return input;
   }
   return [input];
+}
+
+/**
+ * Checks if a passed path is a tar file location i.e. it starts with 'tar:'
+ * @param input The string to process, e.g., 'tar:FILE_PATH!INTERNAL_PATH'
+ * @returns a boolean indicating if the specified path is a tar file location
+ */
+export function isTarPath(input: string) {
+  return input.startsWith(TAR_PREFIX);
+}
+
+/**
+ * Extracts the text between 'tar:' and '!' and the text after '!'
+ * from a structured string.
+ * @param input The string to process, e.g., 'tar:FILE_PATH!INTERNAL_PATH'
+ * @returns An object containing the extracted file path and internal path.
+ */
+export function extractTarPath(input: string): {
+  tarPath: string;
+  internalPath: string;
+} {
+  const separator = "!";
+
+  // 1. Find the start index for the file path (after 'tar:')
+  const tarPrefixIndex = input.indexOf(TAR_PREFIX);
+  if (tarPrefixIndex === -1) {
+    throw new Error("String must start with 'tar:'.");
+  }
+  const filePathStartIndex = tarPrefixIndex + TAR_PREFIX.length;
+
+  // 2. Find the index of the separator '!'
+  const separatorIndex = input.indexOf(separator, filePathStartIndex);
+  if (separatorIndex === -1) {
+    throw new Error("Separator '!' not found after 'tar:'.");
+  }
+
+  // 3. Extract the text between 'tar:' and '!' (the file path)
+  const tarPath = input.substring(filePathStartIndex, separatorIndex);
+
+  // 4. Extract the text after '!' (the internal path)
+  const internalPath = input.substring(separatorIndex + separator.length);
+
+  return { tarPath: tarPath, internalPath };
+}
+
+/**
+ * returns IProfileLoaded from a passed profile name
+ * @param profileName
+ * @param explorerAPI
+ * @returns IProfileLoaded
+ */
+export function loadProfile(
+  profileName: string,
+  explorerAPI: IApiRegisterClient,
+): IProfileLoaded {
+  return explorerAPI
+    .getExplorerExtenderApi()
+    .getProfilesCache()
+    .loadNamedProfile(profileName);
+}
+
+export function getUris(documentUri: vscode.Uri, path: string) {
+  const variables = getVariablesFromUri(documentUri, false);
+  const evaluatedPath = SettingsService.evaluateVariables(path, variables);
+
+  return SettingsService.prepareLocalSearchUris(
+    [evaluatedPath],
+    vscode.workspace.workspaceFolders ?? [],
+  );
 }

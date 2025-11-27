@@ -81,6 +81,7 @@ export const FAIL_CREATE_COPYBOOK_FOLDER_MSG = `Failed to create copybook intern
 export const FAIL_CREATE_GLOBAL_STORAGE_MSG = `Failed to create extension global storage folder`;
 export const E4E_SCHEME: string = "ndvr";
 export const E4E_FOLDER = "e4e";
+export const TAR_FOLDER = "tar";
 export const DATASET = "dataset";
 export const ENVIRONMENT = "environment";
 export const USE_MAP = "MAP";
@@ -99,3 +100,5 @@ export enum PUNCH_CARD {
   AREA_B_END_POS = 72,
   IDENTIFICATION_AREA_END_POS = 80,
 }
+
+export const TAR_PREFIX = "tar:";
