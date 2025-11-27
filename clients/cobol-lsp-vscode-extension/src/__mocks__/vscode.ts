@@ -64,6 +64,14 @@ export const diagnosticsCollectionMock = {
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace workspace {
   export const workspaceFolders = workspaceFoldersMock;
+
+  export function registerTextDocumentContentProvider(
+    scheme: string,
+    provider: TextDocumentContentProvider,
+  ): Disposable {
+    return new Disposable();
+  }
+
   export function getConfiguration() {
     return {
       get: (key: string) => {
@@ -361,4 +369,24 @@ export enum FileType {
   File = 1,
   Directory = 2,
   SymbolicLink = 64,
+}
+
+export class Disposable {
+  /**
+   * Creates a new Disposable calling the provided function
+   * on dispose.
+   * @param callOnDispose Function that disposes something.
+   */
+  constructor(private callOnDispose?: Function) {}
+  /**
+   * Dispose this object.
+   */
+  public dispose(): any {
+    this.callOnDispose?.();
+  }
+}
+
+export interface TextDocumentContentProvider {
+  onDidChange?: Event;
+  provideTextDocumentContent(uri: URI, token: any): any;
 }

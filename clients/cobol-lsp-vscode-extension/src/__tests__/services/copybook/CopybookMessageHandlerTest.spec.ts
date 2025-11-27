@@ -35,8 +35,14 @@ describe("CopybookMessageHandler", () => {
 
     it("returns text from editor, if file is opened in vscode", async () => {
       const uri = vscode.Uri.file("/workspace/edited");
+      const setLangMock = (vscode.languages.setTextDocumentLanguage =
+        jest.fn());
       const result = await readFileContent(uri.toString());
       expect(result).toEqual("EDITED");
+      expect(setLangMock).toHaveBeenCalledWith(
+        expect.objectContaining({ uri }),
+        "cobol",
+      );
     });
 
     it("returns undefined for nonexisting files", async () => {
@@ -146,6 +152,16 @@ export class MockLib implements CopybookLib {
       [key: string]: vscode.Uri | (() => Promise<vscode.Uri>);
     },
   ) {}
+  isCopybookInTar(): boolean {
+    return false;
+  }
+  resolveCopybookUriInTar(
+    _copybookName: string,
+    _documentUri: vscode.Uri,
+    _dialect: string,
+  ): Promise<vscode.Uri | (() => Promise<vscode.Uri | undefined>) | undefined> {
+    throw new Error("Method not implemented.");
+  }
 
   resolveCopybookUri(
     copybookName: string,
@@ -165,6 +181,16 @@ export class MockLib implements CopybookLib {
 }
 
 export class ErrorLib implements CopybookLib {
+  isCopybookInTar(): boolean {
+    return false;
+  }
+  resolveCopybookUriInTar(
+    _copybookName: string,
+    _documentUri: vscode.Uri,
+    _dialect: string,
+  ): Promise<vscode.Uri | (() => Promise<vscode.Uri | undefined>) | undefined> {
+    throw new Error("Method not implemented.");
+  }
   resolveCopybookUri(
     _copybookName: string,
     _documentUri: vscode.Uri,

@@ -58,29 +58,6 @@ export class DatasetLib extends ZoweLib implements CopybookLib {
     if (!(await this.configCheck(documentUri))) {
       return;
     }
-    if (this.isTar) {
-      if (
-        !(await externalApis?.isPresentLocally(
-          externalApis.dsnService?.getTarFileUri(this.dsn),
-        ))
-      ) {
-        await externalApis.dsnService?.downloadFile(this.dsn, profile);
-      }
-      if (externalApis.dsnService) {
-        return await TarUtil.resolveTarFile(
-          documentUri,
-          _dialect,
-          copybookName,
-          externalApis,
-          {
-            tarName: this.dsn,
-            internalPath: this.internalPath,
-            tarFileUri: externalApis.dsnService.getTarFileUri(this.dsn),
-          },
-        );
-      }
-      return;
-    }
 
     const member = await externalApis.dsnService?.hasMember(
       profile,
@@ -112,5 +89,38 @@ export class DatasetLib extends ZoweLib implements CopybookLib {
     );
 
     return members?.map((m) => m.name) ?? [];
+  }
+
+  async resolveCopybookUriInTar(
+    copybookName: string,
+    documentUri: vscode.Uri,
+    dialect: string,
+  ): Promise<vscode.Uri | (() => Promise<vscode.Uri | undefined>) | undefined> {
+    const profile = this.getProfile(documentUri);
+    if (
+      !(await externalApis?.isPresentLocally(
+        externalApis.dsnService?.getTarFileUri(this.dsn),
+      ))
+    ) {
+      await externalApis.dsnService?.downloadFile(this.dsn, profile);
+    }
+    if (externalApis.dsnService) {
+      return await TarUtil.resolveTarFile(
+        documentUri,
+        dialect,
+        copybookName,
+        externalApis,
+        {
+          tarName: this.dsn,
+          internalPath: this.internalPath,
+          tarFileUri: externalApis.dsnService.getTarFileUri(this.dsn),
+        },
+      );
+    }
+    return;
+  }
+
+  isCopybookInTar(): boolean {
+    return this.isTar;
   }
 }

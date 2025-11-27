@@ -15,6 +15,7 @@
 import { CopybookDownloaderForDsn } from "../../../../services/copybook/downloader/CopybookDownloaderForDsn";
 import * as vscode from "vscode";
 import { readDirectoryResult } from "../../../../__mocks__/vscode";
+import { createZoweExplorerMock } from "../../../../__mocks__/getZoweExplorerMock.utility";
 
 describe("Tests Copybook download from DNS", () => {
   beforeEach(() => {
@@ -23,7 +24,10 @@ describe("Tests Copybook download from DNS", () => {
   });
 
   describe("checks the copybook download using ZE DSN API's", () => {
-    const downloader = new CopybookDownloaderForDsn();
+    const downloader = new CopybookDownloaderForDsn(
+      vscode.Uri.parse("storage-path"),
+      createZoweExplorerMock(),
+    );
 
     describe("checks eligible copybook invoke appropriate ZE Api's", () => {
       it("checks hasMember adds fetched list to cache when cache doesn't have the member and hasMember uses cache when have member is cached", async () => {

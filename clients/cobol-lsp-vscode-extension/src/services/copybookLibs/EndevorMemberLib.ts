@@ -89,4 +89,16 @@ export class EndevorMemberLib extends EndevorLib implements CopybookLib {
     }
     return [];
   }
+
+  resolveCopybookUriInTar(
+    _copybookName: string,
+    _documentUri: Uri,
+    _dialect: string,
+  ): Promise<Uri | (() => Promise<Uri | undefined>) | undefined> {
+    throw new Error("Method not implemented.");
+  }
+
+  isCopybookInTar(): boolean {
+    return false;
+  }
 }

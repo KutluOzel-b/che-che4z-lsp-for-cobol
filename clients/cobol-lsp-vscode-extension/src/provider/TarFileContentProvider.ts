@@ -13,13 +13,7 @@ export class TarFileContentProvider
     },
     undefined,
     (tarFileUri: vscode.Uri) => {
-      const {
-        tarfsPath,
-        internalPath,
-        probableCopybooks,
-        copybookName,
-        dialect,
-      } = this.getDetailsFromTarUri(tarFileUri);
+      const { tarfsPath, dialect } = this.getDetailsFromTarUri(tarFileUri);
       return `${tarfsPath}$$${dialect}`;
     },
   );
