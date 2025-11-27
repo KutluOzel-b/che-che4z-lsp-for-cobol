@@ -16,11 +16,12 @@ import CopybookLib from "./CopybookLib";
 import { getVariablesFromUri } from "../util/FSUtils";
 import { SettingsService } from "../Settings";
 import { LibDefinition } from "../ProcessorGroupsLoader";
-import { USS } from "../../constants";
+import { TAR_FOLDER, USS } from "../../constants";
 import * as vscode from "vscode";
 import { externalApis } from "../ExternalAPIsService";
 import { ZoweLib } from "./ZoweLib";
 import { extractTarPath, isTarPath } from "../util/Utils";
+import { TarUtil } from "../util/TarUtil";
 
 export class UssPathLib extends ZoweLib implements CopybookLib {
   private internalPath: string | undefined;
@@ -60,18 +61,27 @@ export class UssPathLib extends ZoweLib implements CopybookLib {
       return;
     }
 
-    //TODO: check if tar, download tar, check if member exists.
-    // create uri
-    // create a uri resolver for tar
-
     if (this.isTar) {
-      // if file download exists, do not download
-      if (!(await externalApis?.isPresentLocally(this.uss))) {
+      if (
+        !(await externalApis?.isPresentLocally(`${TAR_FOLDER}/${this.uss}`))
+      ) {
         await externalApis.ussService?.downloadFile(this.uss, profile);
       }
-      // return await externalApis.getMemberFromTar(externalApis.dsnService, this.dsn, this.internalPath, copybookName);
+      if (externalApis.ussService) {
+        return await TarUtil.resolveTarFile(
+          documentUri,
+          dialect,
+          copybookName,
+          externalApis,
+          {
+            tarName: this.uss,
+            internalPath: this.internalPath,
+            tarFileUri: externalApis.ussService.getTarFileUri(this.uss),
+          },
+        );
+      }
+      return;
     }
-
     const allowedExtensions = await SettingsService.getCopybookExtension(
       documentUri,
       dialect,

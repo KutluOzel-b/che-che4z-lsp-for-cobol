@@ -83,12 +83,13 @@ export class TarUtil {
     _dialect: string,
     copybookName: string,
     externalApis: ExternalAPIsService,
-    tarDetails: { tarPath: string; internalPath: string | undefined },
+    tarDetails: {
+      tarName: string;
+      internalPath: string | undefined;
+      tarFileUri: vscode.Uri;
+    },
   ) {
-    const tarFileUri = externalApis.dsnService!.getTarFileUri(
-      tarDetails.tarPath,
-    );
-    await externalApis.tarProvider?.tarCache.execute(tarFileUri);
+    await externalApis.tarProvider?.tarCache.execute(tarDetails.tarFileUri);
     const variables = getVariablesFromUri(documentUri, false);
     let evaluatedInternalPath: string | undefined = undefined;
     if (tarDetails.internalPath) {
@@ -102,9 +103,9 @@ export class TarUtil {
       documentUri,
       _dialect,
     );
-    const title = `tar:${copybookName}(${_dialect})@${tarDetails.tarPath}`;
+    const title = `tar:${copybookName}(${_dialect})@${tarDetails.tarName}`;
     const tarUri = TarUtil.createTarUri(
-      tarFileUri,
+      tarDetails.tarFileUri,
       copybookName,
       _dialect,
       evaluatedInternalPath || "",

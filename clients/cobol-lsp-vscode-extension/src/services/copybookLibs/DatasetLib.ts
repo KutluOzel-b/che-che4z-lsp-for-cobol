@@ -60,7 +60,9 @@ export class DatasetLib extends ZoweLib implements CopybookLib {
     }
     if (this.isTar) {
       if (
-        !(await externalApis?.isPresentLocally(`${TAR_FOLDER}/${this.dsn}`))
+        !(await externalApis?.isPresentLocally(
+          externalApis.dsnService?.getTarFileUri(this.dsn),
+        ))
       ) {
         await externalApis.dsnService?.downloadFile(this.dsn, profile);
       }
@@ -71,8 +73,9 @@ export class DatasetLib extends ZoweLib implements CopybookLib {
           copybookName,
           externalApis,
           {
-            tarPath: this.dsn,
+            tarName: this.dsn,
             internalPath: this.internalPath,
+            tarFileUri: externalApis.dsnService.getTarFileUri(this.dsn),
           },
         );
       }

@@ -12,11 +12,12 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
+import { externalApis } from "../ExternalAPIsService";
 import { LocalFilesystemResourceService } from "../LocalFilesystemResourceService";
 import { LibDefinition } from "../ProcessorGroupsLoader";
 import { SettingsService } from "../Settings";
-import { getVariablesFromUri } from "../util/FSUtils";
 import { outputChannel } from "../util/OutputChannel";
+import { TarUtil } from "../util/TarUtil";
 import { extractTarPath, getUris, isTarPath } from "../util/Utils";
 import CopybookLib from "./CopybookLib";
 import * as vscode from "vscode";
@@ -47,6 +48,22 @@ export default class LocalPathLib implements CopybookLib {
   ) {
     const uris = getUris(documentUri, this.path);
 
+    if (this.isTar) {
+      if (await externalApis?.isPresentLocally(this.path, false)) {
+        return await TarUtil.resolveTarFile(
+          documentUri,
+          dialect,
+          copybookName,
+          externalApis,
+          {
+            tarName: this.path,
+            internalPath: this.internalPath,
+            tarFileUri: vscode.Uri.parse(this.path),
+          },
+        );
+      }
+      return;
+    }
     const allowedExtensions = await SettingsService.getCopybookExtension(
       documentUri,
       dialect,

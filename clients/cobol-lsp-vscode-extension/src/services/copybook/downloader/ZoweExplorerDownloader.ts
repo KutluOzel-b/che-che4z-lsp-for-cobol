@@ -12,7 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 import * as vscode from "vscode";
-import { FAILED_REQUESTS_LIMIT } from "../../../constants";
+import { FAILED_REQUESTS_LIMIT, TAR_FOLDER } from "../../../constants";
 import { hasMember } from "../../util/Utils";
 
 export interface MemberCacheItem {
@@ -92,7 +92,7 @@ export abstract class ZoweExplorerDownloader {
   }
 
   public getTarFileUri(inputPath: string) {
-    return vscode.Uri.joinPath(this.storagePath, "tar", inputPath);
+    return vscode.Uri.joinPath(this.storagePath, TAR_FOLDER, inputPath);
   }
 
   protected getDownloadOptions(inputPath: string) {

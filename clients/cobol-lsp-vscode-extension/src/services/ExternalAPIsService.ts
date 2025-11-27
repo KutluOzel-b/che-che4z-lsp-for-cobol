@@ -118,11 +118,19 @@ class ExternalAPIsService {
     clearProfiles();
   }
 
-  public async isPresentLocally(inputPath: string) {
+  public async isPresentLocally(
+    inputPath: string | vscode.Uri | undefined,
+    isUnderExtStorage: boolean = true,
+  ) {
+    if (!inputPath) return false;
+    const uri =
+      inputPath instanceof vscode.Uri
+        ? inputPath
+        : isUnderExtStorage
+          ? vscode.Uri.joinPath(this.storagePath, inputPath)
+          : vscode.Uri.parse(inputPath);
     try {
-      await vscode.workspace.fs.stat(
-        vscode.Uri.joinPath(this.storagePath, inputPath),
-      );
+      await vscode.workspace.fs.stat(uri);
       return true;
     } catch (error) {
       return false;
