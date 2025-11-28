@@ -66,8 +66,8 @@ export namespace workspace {
   export const workspaceFolders = workspaceFoldersMock;
 
   export function registerTextDocumentContentProvider(
-    scheme: string,
-    provider: TextDocumentContentProvider,
+    _scheme: string,
+    _provider: TextDocumentContentProvider,
   ): Disposable {
     return new Disposable();
   }
@@ -377,16 +377,20 @@ export class Disposable {
    * on dispose.
    * @param callOnDispose Function that disposes something.
    */
+  // eslint-disable-next-line
   constructor(private callOnDispose?: Function) {}
   /**
    * Dispose this object.
    */
+  // eslint-disable-next-line
   public dispose(): any {
     this.callOnDispose?.();
   }
 }
 
+/* eslint-disable */
 export interface TextDocumentContentProvider {
   onDidChange?: Event;
   provideTextDocumentContent(uri: URI, token: any): any;
 }
+/* eslint-enable */

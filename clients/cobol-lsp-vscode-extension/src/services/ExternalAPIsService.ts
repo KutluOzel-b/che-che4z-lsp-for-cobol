@@ -132,7 +132,7 @@ class ExternalAPIsService {
     try {
       await vscode.workspace.fs.stat(uri);
       return true;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

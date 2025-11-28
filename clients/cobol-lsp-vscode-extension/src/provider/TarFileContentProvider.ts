@@ -20,7 +20,7 @@ export class TarFileContentProvider
   onDidChange?: vscode.Event<vscode.Uri> | undefined;
   async provideTextDocumentContent(
     uri: vscode.Uri,
-    token: unknown,
+    _token: unknown,
   ): Promise<string | undefined> {
     const {
       tarfsPath,

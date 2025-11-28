@@ -12,7 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-import { DATASET, TAR_FOLDER } from "../../constants";
+import { DATASET } from "../../constants";
 import * as vscode from "vscode";
 import CopybookLib from "./CopybookLib";
 import { LibDefinition } from "../ProcessorGroupsLoader";

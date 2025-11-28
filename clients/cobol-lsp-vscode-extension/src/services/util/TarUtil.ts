@@ -74,7 +74,7 @@ export class TarUtil {
     title: string,
   ) {
     return vscode.Uri.parse(
-      `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}/${title}?internalPath=${evaluatedInternalPath}&copybook=${copybookName}&extensions=${allowedExtensions}#${dialect}`,
+      `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}/${title}?internalPath=${evaluatedInternalPath}&copybook=${copybookName}&extensions=${allowedExtensions.toString()}#${dialect}`,
     );
   }
 

@@ -15,7 +15,6 @@
 import * as vscode from "vscode";
 import { ResolvedProfile } from "../../type/e4eApi";
 import { TAR_PREFIX } from "../../constants";
-import { CopybookURI } from "../copybook/CopybookURI";
 import { getVariablesFromUri } from "./FSUtils";
 import { SettingsService } from "../Settings";
 
