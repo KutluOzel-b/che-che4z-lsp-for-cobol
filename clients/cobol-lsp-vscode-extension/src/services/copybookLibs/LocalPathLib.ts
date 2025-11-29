@@ -25,15 +25,7 @@ import * as vscode from "vscode";
 export const localCopybooks = new LocalFilesystemResourceService();
 
 export default class LocalPathLib implements CopybookLib {
-  private internalPath: string | undefined;
-  private isTar: boolean = false;
-  constructor(private path: string) {
-    if (isTarPath(path)) {
-      ({ tarPath: this.path, internalPath: this.internalPath } =
-        extractTarPath(path));
-      this.isTar = true;
-    }
-  }
+  constructor(private path: string) {}
 
   static create(config: LibDefinition) {
     if (typeof config === "string") {
@@ -101,30 +93,5 @@ export default class LocalPathLib implements CopybookLib {
     });
 
     return copybooks;
-  }
-
-  async resolveCopybookUriInTar(
-    copybookName: string,
-    documentUri: vscode.Uri,
-    dialect: string,
-  ): Promise<vscode.Uri | (() => Promise<vscode.Uri | undefined>) | undefined> {
-    if (await externalApis?.isPresentLocally(this.path, false)) {
-      return await TarUtil.resolveTarFile(
-        documentUri,
-        dialect,
-        copybookName,
-        externalApis,
-        {
-          tarName: this.path,
-          internalPath: this.internalPath,
-          tarFileUri: vscode.Uri.parse(this.path),
-        },
-      );
-    }
-    return;
-  }
-
-  isCopybookInTar(): boolean {
-    return this.isTar;
   }
 }

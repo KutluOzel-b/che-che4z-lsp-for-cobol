@@ -16,7 +16,7 @@ import { workspace, Uri } from "vscode";
 import { PathReporter } from "io-ts/lib/PathReporter";
 import { isLeft } from "fp-ts/Either";
 import { TextDecoder } from "util";
-import { asArray, hasMember } from "./util/Utils";
+import { asArray, extractTarPath, hasMember, isTarPath } from "./util/Utils";
 import LocalPathLib from "./copybookLibs/LocalPathLib";
 import { UssPathLib } from "./copybookLibs/UssPathLib";
 import { DatasetLib } from "./copybookLibs/DatasetLib";
@@ -27,6 +27,7 @@ import CopybookLib from "./copybookLibs/CopybookLib";
 import { SettingsService } from "./Settings";
 import { Memoize } from "./util/Memoize";
 import { outputChannel } from "./util/OutputChannel";
+import { TarCopybookLib } from "./copybookLibs/TarCopybookLib";
 
 const PG_FOLDER = ".cobolplugin";
 const PGR_PGM_FILE = "pgm_conf.json";
@@ -100,12 +101,27 @@ const ZoweUssConfigModel = t.intersection([
 ]);
 export type ZoweUssConfigModel = t.TypeOf<typeof ZoweUssConfigModel>;
 
+const TarConfigModel = t.intersection([
+  t.type({
+    locationType: t.union([
+      t.literal("DSN"),
+      t.literal("USS"),
+      t.literal("local"),
+    ]),
+    tarFileLocation: t.string,
+    searchPattern: t.string,
+  }),
+  t.partial({ profile: t.string }),
+]);
+export type TarConfigModel = t.TypeOf<typeof TarConfigModel>;
+
 const LibModel = t.union([
   t.string,
   EndevorConfigModel,
   EndevorDatasetModel,
   ZoweDatasetConfigModel,
   ZoweUssConfigModel,
+  TarConfigModel,
 ]);
 const LibsModel = t.array(LibModel);
 export type LibDefinition = t.TypeOf<typeof LibModel>;
@@ -158,7 +174,8 @@ export type CopybookLibTypes =
   | typeof DatasetLib
   | typeof UssPathLib
   | typeof EndevorElementLib
-  | typeof EndevorMemberLib;
+  | typeof EndevorMemberLib
+  | typeof TarCopybookLib;
 
 const readEndevorConfigCached = new Memoize(
   async function (documentUri: Uri): Promise<WorkspaceConfig | undefined> {
@@ -243,24 +260,68 @@ const readWorkspaceConfigCached = new Memoize(
 export const readWorkspaceConfig = readWorkspaceConfigCached.execute;
 
 export function readSettingConfig(dialectType: string): ProcessorGroup {
+  let tars: {
+    locationType: "DSN" | "USS" | "local";
+    tarFileLocation: string;
+    searchPattern: string;
+  }[] = [];
+
   // local paths
-  const directoryPaths = SettingsService.getLocalPath(dialectType);
+  const directoryPaths = SettingsService.getLocalPath(dialectType).filter(
+    (local) => !isTarPath(local),
+  );
+
+  // local tar
+  tars = tars.concat(
+    SettingsService.getLocalPath(dialectType)
+      .filter((local) => isTarPath(local))
+      .map((local) => extractTarPath(local))
+      .map((tarDetails) => ({
+        locationType: "local",
+        tarFileLocation: tarDetails.tarPath,
+        searchPattern: tarDetails.internalPath,
+      })),
+  );
 
   // dsn
-  const dsns: LibsDefinitions = SettingsService.getDsnPath(dialectType).map(
-    (dsn) => ({ dataset: dsn }),
+  const dsns: LibsDefinitions = SettingsService.getDsnPath(dialectType)
+    .filter((dsn) => !isTarPath(dsn))
+    .map((dsn) => ({ dataset: dsn }));
+
+  // dsn tar
+  tars = tars.concat(
+    SettingsService.getDsnPath(dialectType)
+      .filter((dsn) => isTarPath(dsn))
+      .map((dsn) => extractTarPath(dsn))
+      .map((tarDetails) => ({
+        locationType: "DSN",
+        tarFileLocation: tarDetails.tarPath,
+        searchPattern: tarDetails.internalPath,
+      })),
   );
 
   // uss
-  const usss: LibsDefinitions = SettingsService.getUssPath(dialectType).map(
-    (uss) => ({ uss }),
+  const usss: LibsDefinitions = SettingsService.getUssPath(dialectType)
+    .filter((uss) => !isTarPath(uss))
+    .map((uss) => ({ uss }));
+
+  // uss tar
+  tars = tars.concat(
+    SettingsService.getUssPath(dialectType)
+      .filter((uss) => isTarPath(uss))
+      .map((uss) => extractTarPath(uss))
+      .map((tarDetails) => ({
+        locationType: "USS",
+        tarFileLocation: tarDetails.tarPath,
+        searchPattern: tarDetails.internalPath,
+      })),
   );
 
   return {
     name: "VSCodeSettingProcessorGroup",
     libs: transformLibs(
-      [...directoryPaths, ...dsns, ...usss],
-      [LocalPathLib, DatasetLib, UssPathLib],
+      [...directoryPaths, ...dsns, ...usss, ...tars],
+      [LocalPathLib, DatasetLib, UssPathLib, TarCopybookLib],
       [],
     ),
   };
@@ -298,6 +359,7 @@ async function readProcessorGroupsFile(
         DatasetLib,
         UssPathLib,
         EndevorElementLib,
+        TarCopybookLib,
       ]),
     );
   } catch (e) {

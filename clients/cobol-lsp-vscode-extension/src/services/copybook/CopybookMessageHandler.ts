@@ -48,14 +48,11 @@ export async function resolveCopybookURI(
 
   const pgLibs = await loadProcessorGroupCopybooksLibs(uri, dialectType);
 
-  const promises = pgLibs
-    .filter((lib) => !lib.isCopybookInTar())
-    .map((lib) => lib.resolveCopybookUri(copybookName, uri, dialectType));
+  const promises = pgLibs.map((lib) =>
+    lib.resolveCopybookUri(copybookName, uri, dialectType),
+  );
 
-  const promisesForTar = pgLibs
-    .filter((lib) => lib.isCopybookInTar())
-    .map((lib) => lib.resolveCopybookUriInTar(copybookName, uri, dialectType));
-  const results = await Promise.allSettled([...promises, ...promisesForTar]);
+  const results = await Promise.allSettled(promises);
   for (const result of results) {
     if (result.status === "fulfilled" && result.value) {
       if (typeof result.value === "function") {

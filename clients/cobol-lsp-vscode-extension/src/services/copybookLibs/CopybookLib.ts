@@ -22,12 +22,4 @@ export default interface CopybookLib {
   ): Promise<vscode.Uri | (() => Promise<vscode.Uri | undefined>) | undefined>;
 
   listCopybooks(documentUri: vscode.Uri, dialect: string): Promise<string[]>;
-
-  isCopybookInTar(): boolean;
-
-  resolveCopybookUriInTar(
-    copybookName: string,
-    documentUri: vscode.Uri,
-    dialect: string,
-  ): Promise<vscode.Uri | (() => Promise<vscode.Uri | undefined>) | undefined>;
 }

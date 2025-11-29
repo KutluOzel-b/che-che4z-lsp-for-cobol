@@ -68,6 +68,52 @@
           }
         },
         "required": ["environment", "stage", "system", "subsystem", "type"]
+      },
+      {
+        "type": "object",
+        "properties": {
+          "locationType": {
+            "const": "local",
+            "description": "TAR file is located locally"
+          },
+          "tarFileLocation": {
+            "type": "string",
+            "description": "path of the tar file located locally on the current machine"
+          },
+          "searchPattern": {
+            "type": "string",
+            "description": "path/Wildcard pattern of folder structure within a tar file where copybooks needs to be searched"
+          }
+        },
+        "required": ["tarFileLocation", "searchPattern"]
+      },
+      {
+        "type": "object",
+        "properties": {
+          "locationType": {
+            "type": "string",
+            "enum": ["DSN", "USS"],
+            "description": "remote location type where TAR file is located. Can take either DSN or USS as value."
+          },
+          "tarFileLocation": {
+            "type": "string",
+            "description": "string representing the path of the tar file. This could be a dataset name if tar is located in DSN or a USS directory on the mainframe when tar is located in USS"
+          },
+          "searchPattern": {
+            "type": "string",
+            "description": "path/Wildcard pattern of folder structure within a tar file where copybooks needs to be searched"
+          },
+          "profile": {
+            "type": "string",
+            "description": "Profile name to be used by the ZE extension"
+          }
+        },
+        "required": [
+          "locationType",
+          "tarFileLocation",
+          "searchPattern",
+          "profile"
+        ]
       }
     ]
   }
