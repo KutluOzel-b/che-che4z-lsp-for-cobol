@@ -20,7 +20,6 @@ import { USS } from "../../constants";
 import * as vscode from "vscode";
 import { externalApis } from "../ExternalAPIsService";
 import { ZoweLib } from "./ZoweLib";
-import { extractTarPath, isTarPath } from "../util/Utils";
 
 export class UssPathLib extends ZoweLib implements CopybookLib {
   constructor(

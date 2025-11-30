@@ -23,7 +23,7 @@ import { getE4EAPI } from "./copybook/E4ECopybookService";
 import { Utils } from "./util/Utils";
 import { clearProfiles } from "./util/ProfileUtils";
 import { outputChannel } from "./util/OutputChannel";
-import { TarFileContentProvider } from "../provider/TarFileContentProvider";
+import { TarCopybookFileSystemProvider } from "../provider/TarCopybookFileSystemProvider";
 
 export type { ExternalAPIsService };
 
@@ -34,7 +34,7 @@ const diagnosticCollection: vscode.DiagnosticCollection =
 export async function initializeExternalAPIs(
   storagePath: vscode.Uri,
   configurationInvalidation?: () => unknown,
-  cobolTarContentProvider?: TarFileContentProvider,
+  cobolTarContentProvider?: TarCopybookFileSystemProvider,
 ) {
   const maybeE4E = await getE4EAPI();
   const maybeZowe = await Utils.getZoweExplorerAPI();
@@ -89,14 +89,14 @@ class ExternalAPIsService {
   dsnService?: CopybookDownloaderForDsn;
   ussService?: CopybookDownloaderForUss;
   e4eDownloader?: CopybookDownloaderForE4E;
-  tarProvider?: TarFileContentProvider;
+  tarProvider?: TarCopybookFileSystemProvider;
 
   constructor(
     private storagePath: vscode.Uri,
     explorer?: IApiRegisterClient,
     e4e?: E4E,
     private configurationInvalidation?: () => unknown,
-    cobolTarContentProvider?: TarFileContentProvider,
+    cobolTarContentProvider?: TarCopybookFileSystemProvider,
   ) {
     if (e4e) this.e4eAppeared(e4e);
     if (explorer) this.explorerAppeared(explorer);

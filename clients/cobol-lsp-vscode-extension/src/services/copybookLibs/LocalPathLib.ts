@@ -12,13 +12,11 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 
-import { externalApis } from "../ExternalAPIsService";
 import { LocalFilesystemResourceService } from "../LocalFilesystemResourceService";
 import { LibDefinition } from "../ProcessorGroupsLoader";
 import { SettingsService } from "../Settings";
 import { outputChannel } from "../util/OutputChannel";
-import { TarUtil } from "../util/TarUtil";
-import { extractTarPath, getUris, isTarPath } from "../util/Utils";
+import { getUris } from "../util/Utils";
 import CopybookLib from "./CopybookLib";
 import * as vscode from "vscode";
 

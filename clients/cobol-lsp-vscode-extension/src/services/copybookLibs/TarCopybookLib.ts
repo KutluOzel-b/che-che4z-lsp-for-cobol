@@ -3,8 +3,10 @@ import CopybookLib from "./CopybookLib";
 import * as vscode from "vscode";
 import { getProfileNameForCopybook } from "../util/ProfileUtils";
 import { externalApis } from "../ExternalAPIsService";
-import { TarUtil } from "../util/TarUtil";
 import { LibDefinition } from "../ProcessorGroupsLoader";
+import { TarCopybookFileSystemProvider } from "../../provider/TarCopybookFileSystemProvider";
+import { SettingsService } from "../Settings";
+import { getVariablesFromUri } from "../util/FSUtils";
 
 export class TarCopybookLib implements CopybookLib {
   constructor(
@@ -30,6 +32,7 @@ export class TarCopybookLib implements CopybookLib {
         ? vscode.Uri.parse(this.tarFileLocation)
         : effectiveExternalApi?.getTarFileUri(this.tarFileLocation);
     const isUnderExtStorage = this.locationType === "local" ? false : true;
+    if (!tarFileUri) return;
     if (
       !(await externalApis?.isPresentLocally(tarFileUri, isUnderExtStorage)) &&
       canDownloadTar
@@ -39,25 +42,51 @@ export class TarCopybookLib implements CopybookLib {
         profile,
       );
     }
-    if (
-      tarFileUri &&
-      (await externalApis?.isPresentLocally(tarFileUri, isUnderExtStorage))
-    ) {
-      return await TarUtil.resolveTarFile(
-        documentUri,
-        dialect,
-        copybookName,
-        externalApis,
-        {
-          tarName: this.tarFileLocation,
-          internalPath: this.searchPattern,
-          tarFileUri: tarFileUri,
-        },
+    const variables = getVariablesFromUri(documentUri, false);
+    if (this.searchPattern) {
+      this.searchPattern = SettingsService.evaluateVariables(
+        this.searchPattern,
+        variables,
       );
     }
+    const matchingFilePath = await this.findMatchingFile(
+      tarFileUri,
+      dialect,
+      documentUri,
+      copybookName,
+    );
+    if (matchingFilePath)
+      return vscode.Uri.parse(
+        `${TarCopybookFileSystemProvider.SCHEME}://${tarFileUri.fsPath}?filePath=${matchingFilePath}#${dialect}`,
+      );
   }
-  listCopybooks(documentUri: Uri, dialect: string): Promise<string[]> {
-    throw new Error("Method not implemented.");
+
+  async listCopybooks(documentUri: Uri, dialect: string): Promise<string[]> {
+    const effectiveExternalApi =
+      this.locationType === "DSN"
+        ? externalApis.dsnService
+        : externalApis.ussService;
+
+    const tarFileUri =
+      this.locationType === "local"
+        ? vscode.Uri.parse(this.tarFileLocation)
+        : effectiveExternalApi?.getTarFileUri(this.tarFileLocation);
+
+    if (!tarFileUri) return [];
+    const variables = getVariablesFromUri(documentUri, false);
+    if (this.searchPattern) {
+      this.searchPattern = SettingsService.evaluateVariables(
+        this.searchPattern,
+        variables,
+      );
+    }
+    return await vscode.workspace.fs
+      .readDirectory(
+        vscode.Uri.parse(
+          `${TarCopybookFileSystemProvider.SCHEME}://${tarFileUri.fsPath}?searchPath=${this.searchPattern}#${dialect}`,
+        ),
+      )
+      .then((ele) => ele.map((e) => this.getFilenameFromPath(e[0])));
   }
 
   protected getProfile(documentUri: vscode.Uri) {
@@ -77,5 +106,45 @@ export class TarCopybookLib implements CopybookLib {
         config["profile"],
       );
     }
+  }
+
+  private async findMatchingFile(
+    tarFileUri: Uri,
+    dialect: string,
+    documentUri: Uri,
+    copybookName: string,
+  ) {
+    const allFiles = await vscode.workspace.fs
+      .readDirectory(
+        vscode.Uri.parse(
+          `${TarCopybookFileSystemProvider.SCHEME}://${tarFileUri.fsPath}?searchPath=${this.searchPattern}#${dialect}`,
+        ),
+      )
+      .then((ele) => ele.map((e) => e[0]));
+
+    const allowedExtensions = await SettingsService.getCopybookExtension(
+      documentUri,
+      dialect,
+    );
+    const probableCopybooks = new Set(
+      allowedExtensions
+        .map((e) => e.toUpperCase())
+        .map((ext) => copybookName.toUpperCase() + ext),
+    );
+    const matchingFilePath = allFiles.find((file) => {
+      const filename = this.getFilenameFromPath(file);
+      if (probableCopybooks.has(filename.toUpperCase())) {
+        return true;
+      }
+      return false;
+    });
+    return matchingFilePath;
+  }
+
+  private getFilenameFromPath(file: string) {
+    const lastSlashIndex = file.lastIndexOf("/");
+    const filename =
+      lastSlashIndex === -1 ? file : file.substring(lastSlashIndex + 1);
+    return filename.substring(0, filename.indexOf("."));
   }
 }

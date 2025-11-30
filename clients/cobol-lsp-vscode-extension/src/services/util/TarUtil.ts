@@ -1,10 +1,6 @@
 import * as vscode from "vscode";
 import * as tar from "tar-stream";
 import { Readable } from "stream";
-import { TarFileContentProvider } from "../../provider/TarFileContentProvider";
-import { SettingsService } from "../Settings";
-import { getVariablesFromUri } from "./FSUtils";
-import { ExternalAPIsService } from "../ExternalAPIsService";
 
 export class TarUtil {
   public static ebcdicToAsciiArray(input: Buffer): number[] {
@@ -12,111 +8,101 @@ export class TarUtil {
   }
 
   public static async readTarFile(tarFilePath: vscode.Uri) {
-    const result: { fileName: string; fileContent: string }[] = [];
-    return new Promise<{ fileName: string; fileContent: string }[]>(
-      (resolve, _reject) => {
-        const extract = tar.extract();
-        extract.on("entry", (header, stream, next) => {
-          if (header.type === "file") {
-            stream.on("data", (chunk: Buffer) => {
-              const fileName = header.name;
-              // autodetection by counting the number of 0x40 and 0x20
-              // if you have more 0x40 it is EBCDIC and if the latter is ASCII
-              const isEbcidic =
-                chunk.filter((e) => e === 64).length >
-                chunk.filter((e) => e === 32).length;
-              let fileContent;
-              if (isEbcidic) {
-                fileContent = Buffer.from(
-                  this.ebcdicToAsciiArray(chunk),
-                ).toString("ascii");
-              } else {
-                fileContent = chunk.toString("ascii");
-              }
-              result.push({ fileName, fileContent });
-              // update the cache with tar location + internal path + file content
-            });
+    const result: {
+      fileName: string;
+      fileData: {
+        fileContent: Uint8Array<ArrayBuffer> | string[];
+        fileMetadata: vscode.FileStat;
+      };
+    }[] = [];
+    let currentDirFiles: string[] = [];
+    let currentDirName: string;
+    let dirMetaData: vscode.FileStat;
+    return new Promise<
+      {
+        fileName: string;
+        fileData: {
+          fileContent: Uint8Array<ArrayBuffer> | string[];
+          fileMetadata: vscode.FileStat;
+        };
+      }[]
+    >((resolve, _reject) => {
+      const extract = tar.extract();
+      extract.on("entry", (header, stream, next) => {
+        if (header.type === "file") {
+          stream.on("data", (chunk: Buffer) => {
+            currentDirFiles.push(header.name);
+            const fileName = header.name;
+            const fileMetadata: vscode.FileStat =
+              this.getFileMetadataFromHeader(header);
+            // autodetection by counting the number of 0x40 and 0x20
+            // if you have more 0x40 it is EBCDIC and if the latter is ASCII
+            const isEbcidic =
+              chunk.filter((e) => e === 64).length >
+              chunk.filter((e) => e === 32).length;
+            let fileBuffer;
+            if (isEbcidic) {
+              fileBuffer = this.ebcdicToAsciiArray(chunk);
+            } else {
+              fileBuffer = chunk;
+            }
+            const fileContent = new Uint8Array(fileBuffer);
+            result.push({ fileName, fileData: { fileContent, fileMetadata } });
+            // update the cache with tar location + internal path + file content
+          });
 
-            stream.on("end", () => {
-              next();
-            });
-
-            stream.on("error", (err) => {
-              console.error(`tar stream error for ${header.name}:`, err);
-              next(err);
-            });
-          } else {
+          stream.on("end", () => {
             next();
-          }
-        });
+          });
 
-        extract.on("finish", () => {
-          console.log("---reading archive complete ---");
-          resolve(result);
-        });
+          stream.on("error", (err) => {
+            console.error(`tar stream error for ${header.name}:`, err);
+            next(err);
+          });
+        } else if (header.type === "directory") {
+          result.push({
+            fileName: currentDirName,
+            fileData: {
+              fileContent: currentDirFiles,
+              fileMetadata: dirMetaData,
+            },
+          });
+          currentDirFiles = [];
+          currentDirName = header.name;
+          dirMetaData = this.getFileMetadataFromHeader(header);
+        } else {
+          next();
+        }
+      });
 
-        vscode.workspace.fs.readFile(tarFilePath).then((arr) => {
-          const bufferStream = new Readable();
-          bufferStream.push(Buffer.from(arr));
-          bufferStream.push(null);
-          bufferStream.pipe(extract);
-        });
-      },
-    );
+      extract.on("finish", () => {
+        console.log("---reading archive complete ---");
+        resolve(result);
+      });
+
+      vscode.workspace.fs.readFile(tarFilePath).then((arr) => {
+        const bufferStream = new Readable();
+        bufferStream.push(Buffer.from(arr));
+        bufferStream.push(null);
+        bufferStream.pipe(extract);
+      });
+    });
   }
-
-  public static createTarUri(
-    tarFileUri: vscode.Uri,
-    copybookName: string,
-    dialect: string,
-    evaluatedInternalPath: string,
-    allowedExtensions: string[],
-    title: string,
-  ) {
-    return vscode.Uri.parse(
-      `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}/${title}?internalPath=${evaluatedInternalPath}&copybook=${copybookName}&extensions=${allowedExtensions.toString()}#${dialect}`,
-    );
+  static getFileMetadataFromHeader(header: tar.Headers) {
+    return {
+      mtime: header.mtime?.getTime() || 0,
+      ctime: 0,
+      size: header.size || 0,
+      name: header.name,
+      type: this.getFileTypeFromtarHeader(header.type),
+    };
   }
-
-  public static async resolveTarFile(
-    documentUri: vscode.Uri,
-    _dialect: string,
-    copybookName: string,
-    externalApis: ExternalAPIsService,
-    tarDetails: {
-      tarName: string;
-      internalPath: string | undefined;
-      tarFileUri: vscode.Uri;
-    },
-  ) {
-    await externalApis.tarProvider?.tarCache.execute(tarDetails.tarFileUri);
-    const variables = getVariablesFromUri(documentUri, false);
-    let evaluatedInternalPath: string | undefined = undefined;
-    if (tarDetails.internalPath) {
-      evaluatedInternalPath = SettingsService.evaluateVariables(
-        tarDetails.internalPath,
-        variables,
-      );
-    }
-
-    const allowedExtensions = await SettingsService.getCopybookExtension(
-      documentUri,
-      _dialect,
-    );
-    const title = `tar:${copybookName}(${_dialect})@${tarDetails.tarName}`;
-    const tarUri = TarUtil.createTarUri(
-      tarDetails.tarFileUri,
-      copybookName,
-      _dialect,
-      evaluatedInternalPath || "",
-      allowedExtensions,
-      title,
-    );
-    const document = await vscode.workspace.openTextDocument(tarUri);
-    if (document) {
-      return tarUri;
-    }
-    return;
+  static getFileTypeFromtarHeader(type: string | null | undefined) {
+    if (type === "file") return vscode.FileType.File;
+    if (type === "directory") return vscode.FileType.Directory;
+    if (type === "link" || type === "symlink")
+      return vscode.FileType.SymbolicLink;
+    return vscode.FileType.Unknown;
   }
 
   // prettier-ignore

@@ -18,7 +18,6 @@ import CopybookLib from "./CopybookLib";
 import { LibDefinition } from "../ProcessorGroupsLoader";
 import { externalApis } from "../ExternalAPIsService";
 import { ZoweLib } from "./ZoweLib";
-import { extractTarPath, isTarPath } from "../util/Utils";
 
 export class DatasetLib extends ZoweLib implements CopybookLib {
   constructor(

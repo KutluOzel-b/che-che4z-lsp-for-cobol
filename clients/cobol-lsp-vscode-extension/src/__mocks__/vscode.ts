@@ -65,9 +65,13 @@ export const diagnosticsCollectionMock = {
 export namespace workspace {
   export const workspaceFolders = workspaceFoldersMock;
 
-  export function registerTextDocumentContentProvider(
+  export function registerFileSystemProvider(
     _scheme: string,
-    _provider: TextDocumentContentProvider,
+    _provider: unknown,
+    _options?: {
+      readonly isCaseSensitive?: boolean;
+      readonly isReadonly?: boolean;
+    },
   ): Disposable {
     return new Disposable();
   }
@@ -388,9 +392,20 @@ export class Disposable {
   }
 }
 
-/* eslint-disable */
-export interface TextDocumentContentProvider {
-  onDidChange?: Event;
-  provideTextDocumentContent(uri: URI, token: any): any;
+export class EventEmitter<T> {
+  event: Event<T>;
+  constructor() {
+    this.event = () => {};
+  }
+  fire(data: T) {
+    this.event(() => data);
+  }
+  dispose() {}
 }
-/* eslint-enable */
+export interface Event<T> {
+  (
+    listener: (e: T) => unknown,
+    thisArgs?: unknown,
+    disposables?: unknown[],
+  ): unknown;
+}
