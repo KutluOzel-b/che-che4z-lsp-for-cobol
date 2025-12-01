@@ -46,7 +46,7 @@ describe("Tar copybook lib tests", () => {
       );
       expect(JSON.stringify(result)).toBe(JSON.stringify(expectedValue));
     });
-    it("copybook not present in the dataset", async () => {
+    it("copybook not present in the tar", async () => {
       extApis.dsnService = new CopybookDownloaderForDsn(
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
@@ -63,12 +63,50 @@ describe("Tar copybook lib tests", () => {
         ),
       ).toBeFalsy();
     });
-    it("dataset doesnt exists", () => {});
-    it("invalid configuration check", () => {});
+    it("local tar doesnt exists", async () => {
+      extApis.isPresentLocally = jest.fn().mockReturnValue(false);
+      const localTarLib = new TarCopybookLib(
+        "local",
+        "path/for/tar",
+        "APPLDICT/EMPRPT/**",
+        "zeProfile",
+      );
+      expect(
+        await localTarLib.resolveCopybookUri(
+          "DEPARTMENT",
+          vscode.Uri.file("/program.cbl"),
+          DEFAULT_DIALECT,
+        ),
+      ).toBeFalsy();
+    });
+
+    it("remote tar doesnt exists", async () => {
+      extApis.dsnService = new CopybookDownloaderForDsn(
+        vscode.Uri.file("/storage"),
+        createZoweExplorerMock(),
+      );
+      extApis.dsnService.downloadFile = jest.fn();
+      extApis.isPresentLocally = jest.fn().mockReturnValue(false);
+      const dsnTarLib = new TarCopybookLib(
+        "DSN",
+        "path/for/tar",
+        "APPLDICT/EMPRPT/**",
+        "zeProfile",
+      );
+      await dsnTarLib.resolveCopybookUri(
+        "DEPARTMENT",
+        vscode.Uri.file("/program.cbl"),
+        DEFAULT_DIALECT,
+      );
+      expect(extApis.dsnService.downloadFile).toHaveBeenCalledWith(
+        "path/for/tar",
+        "zeProfile",
+      );
+    });
   });
 
   describe("listCopybooks", () => {
-    describe("list copybook from dataset", () => {});
-    describe("dataset doesn't exists", () => {});
+    describe("list copybook from tar", () => {});
+    describe("tar doesn't exists", () => {});
   });
 });
