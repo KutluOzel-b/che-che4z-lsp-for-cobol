@@ -55,15 +55,13 @@ describe("Tar copybook lib tests", () => {
         ["APPLDICT/EMPRPT/RECORD/DEPARTMENT1.CPY", vscode.FileType.File],
         ["SOME/RANDOM/FILE.CPY", vscode.FileType.File],
       ]);
-      try {
+      expect(
         await dsnTarLib.resolveCopybookUri(
           "DEPARTMENT",
           vscode.Uri.file("/program.cbl"),
           DEFAULT_DIALECT,
-        );
-      } catch (error: unknown) {
-        if (error instanceof Error) expect(error.message).toBe("");
-      }
+        ),
+      ).toBeFalsy();
     });
     it("dataset doesnt exists", () => {});
     it("invalid configuration check", () => {});
