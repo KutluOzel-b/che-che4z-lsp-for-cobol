@@ -15,8 +15,6 @@
 import * as vscode from "vscode";
 import { ResolvedProfile } from "../../type/e4eApi";
 import { TAR_PREFIX } from "../../constants";
-import { getVariablesFromUri } from "./FSUtils";
-import { SettingsService } from "../Settings";
 
 async function safeActivate(ext: vscode.Extension<unknown>) {
   try {
@@ -192,14 +190,4 @@ export function loadProfile(
     .getExplorerExtenderApi()
     .getProfilesCache()
     .loadNamedProfile(profileName);
-}
-
-export function getUris(documentUri: vscode.Uri, path: string) {
-  const variables = getVariablesFromUri(documentUri, false);
-  const evaluatedPath = SettingsService.evaluateVariables(path, variables);
-
-  return SettingsService.prepareLocalSearchUris(
-    [evaluatedPath],
-    vscode.workspace.workspaceFolders ?? [],
-  );
 }

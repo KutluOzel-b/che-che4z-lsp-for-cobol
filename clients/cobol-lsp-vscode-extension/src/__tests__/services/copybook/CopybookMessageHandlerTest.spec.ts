@@ -152,16 +152,6 @@ export class MockLib implements CopybookLib {
       [key: string]: vscode.Uri | (() => Promise<vscode.Uri>);
     },
   ) {}
-  isCopybookInTar(): boolean {
-    return false;
-  }
-  resolveCopybookUriInTar(
-    _copybookName: string,
-    _documentUri: vscode.Uri,
-    _dialect: string,
-  ): Promise<vscode.Uri | (() => Promise<vscode.Uri | undefined>) | undefined> {
-    throw new Error("Method not implemented.");
-  }
 
   resolveCopybookUri(
     copybookName: string,
@@ -181,16 +171,6 @@ export class MockLib implements CopybookLib {
 }
 
 export class ErrorLib implements CopybookLib {
-  isCopybookInTar(): boolean {
-    return false;
-  }
-  resolveCopybookUriInTar(
-    _copybookName: string,
-    _documentUri: vscode.Uri,
-    _dialect: string,
-  ): Promise<vscode.Uri | (() => Promise<vscode.Uri | undefined>) | undefined> {
-    throw new Error("Method not implemented.");
-  }
   resolveCopybookUri(
     _copybookName: string,
     _documentUri: vscode.Uri,

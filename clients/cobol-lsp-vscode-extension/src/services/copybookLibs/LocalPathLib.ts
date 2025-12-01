@@ -15,8 +15,8 @@
 import { LocalFilesystemResourceService } from "../LocalFilesystemResourceService";
 import { LibDefinition } from "../ProcessorGroupsLoader";
 import { SettingsService } from "../Settings";
+import { getVariablesFromUri } from "../util/FSUtils";
 import { outputChannel } from "../util/OutputChannel";
-import { getUris } from "../util/Utils";
 import CopybookLib from "./CopybookLib";
 import * as vscode from "vscode";
 
@@ -31,12 +31,25 @@ export default class LocalPathLib implements CopybookLib {
     }
   }
 
+  private getUris(documentUri: vscode.Uri) {
+    const variables = getVariablesFromUri(documentUri, false);
+    const evaluatedPath = SettingsService.evaluateVariables(
+      this.path,
+      variables,
+    );
+
+    return SettingsService.prepareLocalSearchUris(
+      [evaluatedPath],
+      vscode.workspace.workspaceFolders ?? [],
+    );
+  }
+
   async resolveCopybookUri(
     copybookName: string,
     documentUri: vscode.Uri,
     dialect: string,
   ) {
-    const uris = getUris(documentUri, this.path);
+    const uris = this.getUris(documentUri);
 
     const allowedExtensions = await SettingsService.getCopybookExtension(
       documentUri,
@@ -65,7 +78,7 @@ export default class LocalPathLib implements CopybookLib {
     documentUri: vscode.Uri,
     dialect: string,
   ): Promise<string[]> {
-    const uris = getUris(documentUri, this.path);
+    const uris = this.getUris(documentUri);
 
     const allowedExtensions = await SettingsService.getCopybookExtension(
       documentUri,
