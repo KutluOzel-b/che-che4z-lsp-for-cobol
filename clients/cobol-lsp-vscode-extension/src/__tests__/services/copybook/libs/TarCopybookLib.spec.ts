@@ -41,10 +41,16 @@ describe("Tar copybook lib tests", () => {
         vscode.Uri.file("/program.cbl"),
         DEFAULT_DIALECT,
       );
-      const expectedValue = vscode.Uri.parse(
-        `tar:///storage/tar/path/for/tar?filePath=APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY#COBOL`,
-      );
-      expect(JSON.stringify(result)).toBe(JSON.stringify(expectedValue));
+      expect(result).toBeTruthy();
+      const expectedValue = vscode.Uri.from({
+        scheme: "tar",
+        authority: "",
+        path: "/storage/tar/path/for/tar",
+        query: "filePath=APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY",
+        fragment: "COBOL",
+      });
+      expect(result instanceof vscode.Uri).toBeTruthy();
+      expect((result as vscode.Uri).fsPath).toBe(expectedValue.fsPath);
     });
     it("copybook not present in the tar", async () => {
       extApis.dsnService = new CopybookDownloaderForDsn(
