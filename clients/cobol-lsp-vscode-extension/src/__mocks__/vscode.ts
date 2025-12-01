@@ -343,6 +343,9 @@ export const FileSystemError = {
   FileNotFound: () => {
     return new FileNotFound();
   },
+  NoPermissions: () => {
+    return new Error("No Permission");
+  },
 };
 
 export const RelativePattern = jest

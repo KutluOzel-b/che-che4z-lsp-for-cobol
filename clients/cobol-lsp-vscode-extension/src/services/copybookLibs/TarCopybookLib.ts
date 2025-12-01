@@ -31,7 +31,7 @@ export class TarCopybookLib implements CopybookLib {
       this.locationType === "local"
         ? vscode.Uri.parse(this.tarFileLocation)
         : effectiveExternalApi?.getTarFileUri(this.tarFileLocation);
-    const isUnderExtStorage = this.locationType === "local" ? false : true;
+    const isUnderExtStorage = this.locationType !== "local";
     if (!tarFileUri) return;
     if (
       !(await externalApis?.isPresentLocally(tarFileUri, isUnderExtStorage)) &&
@@ -80,7 +80,7 @@ export class TarCopybookLib implements CopybookLib {
         variables,
       );
     }
-    return await vscode.workspace.fs
+    return vscode.workspace.fs
       .readDirectory(
         vscode.Uri.parse(
           `${TarCopybookFileSystemProvider.SCHEME}://${tarFileUri.fsPath}?searchPath=${this.searchPattern}#${dialect}`,
@@ -145,6 +145,6 @@ export class TarCopybookLib implements CopybookLib {
     const lastSlashIndex = file.lastIndexOf("/");
     const filename =
       lastSlashIndex === -1 ? file : file.substring(lastSlashIndex + 1);
-    return filename.substring(0, filename.indexOf("."));
+    return filename;
   }
 }

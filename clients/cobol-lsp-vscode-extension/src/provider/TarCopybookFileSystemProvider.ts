@@ -43,7 +43,7 @@ export class TarCopybookFileSystemProvider
   }
 
   /**
-   * `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}?searchPath=${evaluatedInternalPath}&extensions=${allowedExtensions.toString()}#${dialect}`
+   * `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}?searchPath=${evaluatedInternalPath}#${dialect}`
    * get list of all the files within a TAR file and search pattern
    * @param uri
    */
@@ -130,24 +130,24 @@ export class TarCopybookFileSystemProvider
     _content: unknown,
     _options: unknown,
   ): void | Thenable<void> {
-    throw vscode.FileSystemError.Unavailable();
+    throw vscode.FileSystemError.NoPermissions();
   }
   delete(_uri: unknown, _options: unknown): void | Thenable<void> {
-    throw vscode.FileSystemError.Unavailable();
+    throw vscode.FileSystemError.NoPermissions();
   }
   rename(
     _oldUri: unknown,
     _newUri: unknown,
     _options: unknown,
   ): void | Thenable<void> {
-    throw vscode.FileSystemError.Unavailable();
+    throw vscode.FileSystemError.NoPermissions();
   }
   copy?(
     _source: unknown,
     _destination: unknown,
     _options: unknown,
   ): void | Thenable<void> {
-    throw vscode.FileSystemError.Unavailable();
+    throw vscode.FileSystemError.NoPermissions();
   }
 
   private getDetailsFromTarUri(uri: vscode.Uri) {
