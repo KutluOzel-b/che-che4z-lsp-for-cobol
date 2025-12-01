@@ -106,7 +106,29 @@ describe("Tar copybook lib tests", () => {
   });
 
   describe("listCopybooks", () => {
-    describe("list copybook from tar", () => {});
+    it("list copybook from tar", async () => {
+      extApis.dsnService = new CopybookDownloaderForDsn(
+        vscode.Uri.file("/storage"),
+        createZoweExplorerMock(),
+      );
+      vscode.workspace.fs.readDirectory = jest.fn().mockResolvedValue([
+        ["APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY", vscode.FileType.File],
+        ["SOME/RANDOM/FILE.CPY", vscode.FileType.File],
+      ]);
+      const dsnTarLib = new TarCopybookLib(
+        "DSN",
+        "path/for/tar",
+        "APPLDICT/EMPRPT/**",
+        "zeProfile",
+      );
+      const result = await dsnTarLib.listCopybooks(
+        vscode.Uri.file("/program.cbl"),
+        DEFAULT_DIALECT,
+      );
+      expect(result.length).toBe(2);
+      expect(new Set(result).has("DEPARTMENT")).toBeTruthy();
+      expect(new Set(result).has("FILE")).toBeTruthy();
+    });
     describe("tar doesn't exists", () => {});
   });
 });

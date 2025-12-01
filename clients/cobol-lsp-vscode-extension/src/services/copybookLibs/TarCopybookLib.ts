@@ -132,7 +132,7 @@ export class TarCopybookLib implements CopybookLib {
         .map((ext) => copybookName.toUpperCase() + ext),
     );
     const matchingFilePath = allFiles.find((file) => {
-      const filename = this.getFilenameFromPath(file);
+      const filename = this.getFilenameFromPath(file, true);
       if (probableCopybooks.has(filename.toUpperCase())) {
         return true;
       }
@@ -141,10 +141,12 @@ export class TarCopybookLib implements CopybookLib {
     return matchingFilePath;
   }
 
-  private getFilenameFromPath(file: string) {
+  private getFilenameFromPath(file: string, withExtension: boolean = false) {
     const lastSlashIndex = file.lastIndexOf("/");
     const filename =
       lastSlashIndex === -1 ? file : file.substring(lastSlashIndex + 1);
-    return filename;
+    return withExtension
+      ? filename
+      : filename.substring(0, filename.indexOf("."));
   }
 }
