@@ -6,7 +6,7 @@ import { TarUtil } from "../services/util/TarUtil";
 export class TarCopybookFileSystemProvider
   implements vscode.FileSystemProvider
 {
-  public static SCHEME = "tar";
+  public static readonly SCHEME = "cobol-ls-tar";
   public tarCache = new Memoize(
     async (tarFileUri: vscode.Uri) => {
       return await TarUtil.readTarFile(tarFileUri);
