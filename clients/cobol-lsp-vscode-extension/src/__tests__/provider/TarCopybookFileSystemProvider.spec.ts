@@ -1,22 +1,12 @@
 import { TarCopybookFileSystemProvider } from "../../provider/TarCopybookFileSystemProvider";
 import * as vscode from "vscode";
-import * as j from "../../__mocks__/tarContent";
+import { extractTarToContent } from "../../Helper";
 
 describe("TarCopybookFileSystemProvider", () => {
-  let provider: TarCopybookFileSystemProvider;
-
-  beforeEach(() => {
-    provider = new TarCopybookFileSystemProvider();
-    const tarContent = j.tarContent.map((e) => {
-      return {
-        fileName: e.fileName,
-        fileData: {
-          fileContent: new Uint8Array(Object.values(e.fileData.fileContent)),
-          fileMetadata: e.fileData.fileMetadata,
-        },
-      };
-    });
-    provider.tarCache.execute = jest.fn().mockResolvedValue(tarContent);
+  const provider = new TarCopybookFileSystemProvider();
+  const tarContent = extractTarToContent("output.cobol-ls-tar");
+  beforeEach(async () => {
+    provider.tarCache.execute = jest.fn().mockResolvedValue(await tarContent);
   });
 
   describe("stat", () => {
