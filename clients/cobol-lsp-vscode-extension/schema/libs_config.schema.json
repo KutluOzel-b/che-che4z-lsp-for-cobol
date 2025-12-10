@@ -85,7 +85,7 @@
             "description": "path/Wildcard pattern of folder structure within a tar file where copybooks needs to be searched"
           }
         },
-        "required": ["tarFileLocation", "searchPattern"]
+        "required": ["locationType", "tarFileLocation", "searchPattern"]
       },
       {
         "type": "object",
@@ -108,12 +108,7 @@
             "description": "Profile name to be used by the ZE extension"
           }
         },
-        "required": [
-          "locationType",
-          "tarFileLocation",
-          "searchPattern",
-          "profile"
-        ]
+        "required": ["locationType", "tarFileLocation", "searchPattern"]
       }
     ]
   }

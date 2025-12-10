@@ -99,11 +99,17 @@ export class TarCopybookLib implements CopybookLib {
       "locationType" in config &&
       "tarFileLocation" in config
     ) {
+      if ("profile" in config)
+        return new TarCopybookLib(
+          config["locationType"],
+          config["tarFileLocation"],
+          config["searchPattern"],
+          config["profile"],
+        );
       return new TarCopybookLib(
         config["locationType"],
         config["tarFileLocation"],
         config["searchPattern"],
-        config["profile"],
       );
     }
   }

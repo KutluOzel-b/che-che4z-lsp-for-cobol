@@ -101,18 +101,21 @@ const ZoweUssConfigModel = t.intersection([
 ]);
 export type ZoweUssConfigModel = t.TypeOf<typeof ZoweUssConfigModel>;
 
-const TarConfigModel = t.intersection([
+const TarConfigDSNandUSSModel = t.intersection([
   t.type({
-    locationType: t.union([
-      t.literal("DSN"),
-      t.literal("USS"),
-      t.literal("local"),
-    ]),
+    locationType: t.union([t.literal("DSN"), t.literal("USS")]),
     tarFileLocation: t.string,
     searchPattern: t.string,
   }),
   t.partial({ profile: t.string }),
 ]);
+const TarConfigLocalModel = t.type({
+  locationType: t.literal("local"),
+  tarFileLocation: t.string,
+  searchPattern: t.string,
+});
+
+const TarConfigModel = t.union([TarConfigLocalModel, TarConfigDSNandUSSModel]);
 export type TarConfigModel = t.TypeOf<typeof TarConfigModel>;
 
 const LibModel = t.union([
@@ -260,11 +263,18 @@ const readWorkspaceConfigCached = new Memoize(
 export const readWorkspaceConfig = readWorkspaceConfigCached.execute;
 
 export function readSettingConfig(dialectType: string): ProcessorGroup {
-  let tars: {
-    locationType: "DSN" | "USS" | "local";
+  type remotes = {
+    locationType: "DSN" | "USS";
     tarFileLocation: string;
     searchPattern: string;
-  }[] = [];
+    profile?: string;
+  };
+  type local = {
+    locationType: "local";
+    tarFileLocation: string;
+    searchPattern: string;
+  };
+  let tars: (local | remotes | (local & remotes))[] = [];
 
   // local paths
   const directoryPaths = SettingsService.getLocalPath(dialectType).filter(
