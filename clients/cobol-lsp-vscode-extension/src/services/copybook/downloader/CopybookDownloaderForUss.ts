@@ -11,6 +11,7 @@
  * Contributors:
  *   Broadcom, Inc. - initial API and implementation
  */
+import { TAR_FOLDER } from "../../../constants";
 import { splitFilename } from "../../util/FSUtils";
 import { loadProfile } from "../../util/Utils";
 import {
@@ -23,8 +24,11 @@ import * as vscode from "vscode";
  * Copybook downloader from USS using Zowe Explorer
  */
 export class CopybookDownloaderForUss extends ZoweExplorerDownloader {
-  constructor(storagePath: vscode.Uri, explorerAPI: IApiRegisterClient) {
-    super(storagePath, explorerAPI);
+  constructor(
+    private storagePath: vscode.Uri,
+    private explorerAPI: IApiRegisterClient,
+  ) {
+    super();
   }
 
   public async getAllMembers(
@@ -76,8 +80,14 @@ export class CopybookDownloaderForUss extends ZoweExplorerDownloader {
 
   public async downloadFile(ussPath: string, profile: string) {
     const loadedProfile = loadProfile(profile, this.explorerAPI);
-    await this.explorerAPI
-      .getUssApi(loadedProfile)
-      .getContents(`${ussPath}`, this.getDownloadOptions(ussPath).apiOptions);
+    const tarUri = this.getTarFileUri(ussPath);
+    await this.explorerAPI.getUssApi(loadedProfile).getContents(`${ussPath}`, {
+      file: tarUri.fsPath,
+      returnEtag: true,
+      binary: true,
+    });
+  }
+  public getTarFileUri(filePath: string) {
+    return vscode.Uri.joinPath(this.storagePath, TAR_FOLDER, filePath);
   }
 }

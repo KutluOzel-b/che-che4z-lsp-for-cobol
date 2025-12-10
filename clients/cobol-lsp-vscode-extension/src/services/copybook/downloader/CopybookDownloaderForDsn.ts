@@ -11,6 +11,7 @@
  * Contributors:
  *   Broadcom, Inc. - initial API and implementation
  */
+import { TAR_FOLDER } from "../../../constants";
 import { splitFilename } from "../../util/FSUtils";
 import { loadProfile } from "../../util/Utils";
 import {
@@ -23,8 +24,11 @@ import * as vscode from "vscode";
  * Copybook downloader from MVS using Zowe Explorer
  */
 export class CopybookDownloaderForDsn extends ZoweExplorerDownloader {
-  constructor(storagePath: vscode.Uri, explorerAPI: IApiRegisterClient) {
-    super(storagePath, explorerAPI);
+  constructor(
+    private storagePath: vscode.Uri,
+    private explorerAPI: IApiRegisterClient,
+  ) {
+    super();
   }
 
   public async getAllMembers(
@@ -61,8 +65,14 @@ export class CopybookDownloaderForDsn extends ZoweExplorerDownloader {
 
   public async downloadFile(dsnPath: string, profile: string) {
     const loadedProfile = loadProfile(profile, this.explorerAPI);
-    await this.explorerAPI
-      .getMvsApi(loadedProfile)
-      .getContents(`${dsnPath}`, this.getDownloadOptions(dsnPath).apiOptions);
+    const tarUri = this.getTarFileUri(dsnPath);
+    await this.explorerAPI.getMvsApi(loadedProfile).getContents(`${dsnPath}`, {
+      file: tarUri.fsPath,
+      returnEtag: true,
+      binary: true,
+    });
+  }
+  public getTarFileUri(filePath: string) {
+    return vscode.Uri.joinPath(this.storagePath, TAR_FOLDER, filePath);
   }
 }

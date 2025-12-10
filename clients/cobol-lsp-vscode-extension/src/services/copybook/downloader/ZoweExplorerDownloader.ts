@@ -12,7 +12,7 @@
  *   Broadcom, Inc. - initial API and implementation
  */
 import * as vscode from "vscode";
-import { FAILED_REQUESTS_LIMIT, TAR_FOLDER } from "../../../constants";
+import { FAILED_REQUESTS_LIMIT } from "../../../constants";
 import { hasMember } from "../../util/Utils";
 
 export interface MemberCacheItem {
@@ -25,11 +25,6 @@ export abstract class ZoweExplorerDownloader {
     new Map();
   protected memberListCache: Map<string, MemberCacheItem[]> = new Map();
   protected failedRequests: Map<string, number> = new Map();
-
-  constructor(
-    private readonly storagePath: vscode.Uri,
-    protected readonly explorerAPI: IApiRegisterClient,
-  ) {}
 
   protected createId(profileName: string, path: string, extensions: string[]) {
     return `${profileName}|${path}|${extensions.join("|")}`;
@@ -89,22 +84,6 @@ export abstract class ZoweExplorerDownloader {
     );
     copybookName = copybookName.toUpperCase();
     return members.find((member) => member.name.toUpperCase() === copybookName);
-  }
-
-  public getTarFileUri(inputPath: string) {
-    return vscode.Uri.joinPath(this.storagePath, TAR_FOLDER, inputPath);
-  }
-
-  protected getDownloadOptions(inputPath: string) {
-    const fileUri = this.getTarFileUri(inputPath);
-    return {
-      apiOptions: {
-        file: fileUri.fsPath,
-        returnEtag: true,
-        binary: true,
-      },
-      fileUri,
-    };
   }
 
   public abstract getAllMembers(
