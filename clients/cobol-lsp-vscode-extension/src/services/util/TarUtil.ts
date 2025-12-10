@@ -27,6 +27,7 @@ export class TarUtil {
         };
       }[]
     >((resolve, _reject) => {
+      let isEbcidic: boolean | undefined;
       const extract = tar.extract();
       extract.on("entry", (header, stream, next) => {
         if (header.type === "file") {
@@ -37,9 +38,11 @@ export class TarUtil {
               this.getFileMetadataFromHeader(header);
             // autodetection by counting the number of 0x40 and 0x20
             // if you have more 0x40 it is EBCDIC and if the latter is ASCII
-            const isEbcidic =
-              chunk.filter((e) => e === 64).length >
-              chunk.filter((e) => e === 32).length;
+            if (isEbcidic === undefined) {
+              isEbcidic =
+                chunk.filter((e) => e === 64).length >
+                chunk.filter((e) => e === 32).length;
+            }
             let fileBuffer;
             if (isEbcidic) {
               fileBuffer = this.ebcdicToAsciiArray(chunk);
