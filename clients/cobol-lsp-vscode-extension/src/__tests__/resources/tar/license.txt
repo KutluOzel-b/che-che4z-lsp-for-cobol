@@ -1,0 +1,1 @@
+https://techdocs.broadcom.com/us/en/ca-mainframe-software/database-management/ca-idms-reference/19-0/dml-reference-for-cobol/sample-batch-program.html

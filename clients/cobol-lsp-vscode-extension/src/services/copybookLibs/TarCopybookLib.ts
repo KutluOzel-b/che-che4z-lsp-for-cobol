@@ -21,28 +21,37 @@ export class TarCopybookLib implements CopybookLib {
     documentUri: Uri,
     dialect: string,
   ): Promise<Uri | (() => Promise<Uri | undefined>) | undefined> {
-    const profile = this.getProfile(documentUri);
-    const canDownloadTar = this.locationType !== "local";
-    const effectiveExternalApi =
-      this.locationType === "DSN"
-        ? externalApis.dsnService
-        : externalApis.ussService;
-    const tarFileUri =
-      this.locationType === "local"
-        ? vscode.Uri.parse(this.tarFileLocation)
-        : effectiveExternalApi?.getTarFileUri(this.tarFileLocation);
-    const isUnderExtStorage = this.locationType !== "local";
-    if (!tarFileUri) return;
-    if (
-      !(await externalApis?.isPresentLocally(tarFileUri, isUnderExtStorage)) &&
-      canDownloadTar
-    ) {
-      await externalApis.dsnService?.downloadFile(
-        this.tarFileLocation,
-        profile,
-      );
-    }
     const variables = getVariablesFromUri(documentUri, false);
+    const evaluatedTarPath = SettingsService.evaluateVariables(
+      this.tarFileLocation,
+      variables,
+    );
+    let tarFileUri: vscode.Uri | undefined;
+    if (this.locationType == "local") {
+      const local = SettingsService.prepareLocalSearchUris(
+        [evaluatedTarPath],
+        vscode.workspace.workspaceFolders ?? [],
+      );
+      tarFileUri = local ? local[0] : undefined;
+    } else {
+      const effectiveExternalApi =
+        this.locationType === "DSN"
+          ? externalApis.dsnService
+          : externalApis.ussService;
+
+      const isAvailableAlready =
+        await externalApis.isPresentLocally(evaluatedTarPath);
+      tarFileUri = effectiveExternalApi?.getTarFileUri(this.tarFileLocation);
+      if (!isAvailableAlready) {
+        const profile = this.getProfile(documentUri);
+        await externalApis.dsnService?.downloadFile(
+          this.tarFileLocation,
+          profile,
+        );
+      }
+    }
+    if (!tarFileUri) return;
+
     if (this.searchPattern) {
       this.searchPattern = SettingsService.evaluateVariables(
         this.searchPattern,
