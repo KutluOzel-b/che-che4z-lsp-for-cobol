@@ -111,13 +111,13 @@ export class TarCopybookLib implements CopybookLib {
       if ("profile" in config)
         return new TarCopybookLib(
           config["locationType"],
-          config["tarFileLocation"],
+          encodeURIComponent(config["tarFileLocation"]),
           config["searchPattern"],
           config["profile"],
         );
       return new TarCopybookLib(
         config["locationType"],
-        config["tarFileLocation"],
+        encodeURIComponent(config["tarFileLocation"]),
         config["searchPattern"],
       );
     }

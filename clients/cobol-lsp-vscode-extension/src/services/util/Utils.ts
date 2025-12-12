@@ -156,7 +156,7 @@ export function extractTarPath(input: string): {
 
   // 1. Find the start index for the file path (after 'tar:')
   const tarPrefixIndex = input.indexOf(TAR_PREFIX);
-  if (tarPrefixIndex === -1) {
+  if (tarPrefixIndex != 0) {
     throw new Error("String must start with 'tar:'.");
   }
   const filePathStartIndex = tarPrefixIndex + TAR_PREFIX.length;
