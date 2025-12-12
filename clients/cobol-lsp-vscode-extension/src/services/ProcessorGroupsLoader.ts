@@ -263,74 +263,61 @@ const readWorkspaceConfigCached = new Memoize(
 export const readWorkspaceConfig = readWorkspaceConfigCached.execute;
 
 export function readSettingConfig(dialectType: string): ProcessorGroup {
-  type remotes = {
-    locationType: "DSN" | "USS";
-    tarFileLocation: string;
-    searchPattern: string;
-    profile?: string;
-  };
-  type local = {
+  type localTar = {
     locationType: "local";
     tarFileLocation: string;
     searchPattern: string;
   };
-  let tars: (local | remotes | (local & remotes))[] = [];
 
   // local paths
-  const directoryPaths = SettingsService.getLocalPath(dialectType).filter(
-    (local) => !isTarPath(local),
-  );
-
-  // local tar
-  tars = tars.concat(
-    SettingsService.getLocalPath(dialectType)
-      .filter((local) => isTarPath(local))
-      .map((local) => extractTarPath(local))
-      .map((tarDetails) => ({
-        locationType: "local",
-        tarFileLocation: tarDetails.tarPath,
-        searchPattern: tarDetails.internalPath,
-      })),
+  const directoryPaths = SettingsService.getLocalPath(dialectType).map(
+    (localPath) => {
+      if (isTarPath(localPath)) {
+        const { tarPath, internalPath } = extractTarPath(localPath);
+        const local: localTar = {
+          locationType: "local",
+          tarFileLocation: tarPath,
+          searchPattern: internalPath,
+        };
+        return local;
+      }
+      return localPath;
+    },
   );
 
   // dsn
-  const dsns: LibsDefinitions = SettingsService.getDsnPath(dialectType)
-    .filter((dsn) => !isTarPath(dsn))
-    .map((dsn) => ({ dataset: dsn }));
-
-  // dsn tar
-  tars = tars.concat(
-    SettingsService.getDsnPath(dialectType)
-      .filter((dsn) => isTarPath(dsn))
-      .map((dsn) => extractTarPath(dsn))
-      .map((tarDetails) => ({
-        locationType: "DSN",
-        tarFileLocation: tarDetails.tarPath,
-        searchPattern: tarDetails.internalPath,
-      })),
+  const dsns: LibsDefinitions = SettingsService.getDsnPath(dialectType).map(
+    (dsn) => {
+      if (isTarPath(dsn)) {
+        const { tarPath, internalPath } = extractTarPath(dsn);
+        return {
+          locationType: "DSN",
+          tarFileLocation: tarPath,
+          searchPattern: internalPath,
+        };
+      }
+      return { dataset: dsn };
+    },
   );
 
   // uss
-  const usss: LibsDefinitions = SettingsService.getUssPath(dialectType)
-    .filter((uss) => !isTarPath(uss))
-    .map((uss) => ({ uss }));
-
-  // uss tar
-  tars = tars.concat(
-    SettingsService.getUssPath(dialectType)
-      .filter((uss) => isTarPath(uss))
-      .map((uss) => extractTarPath(uss))
-      .map((tarDetails) => ({
-        locationType: "USS",
-        tarFileLocation: tarDetails.tarPath,
-        searchPattern: tarDetails.internalPath,
-      })),
+  const usss: LibsDefinitions = SettingsService.getUssPath(dialectType).map(
+    (uss) => {
+      if (isTarPath(uss)) {
+        const { tarPath, internalPath } = extractTarPath(uss);
+        return {
+          locationType: "USS",
+          tarFileLocation: tarPath,
+          searchPattern: internalPath,
+        };
+      }
+      return uss;
+    },
   );
-
   return {
     name: "VSCodeSettingProcessorGroup",
     libs: transformLibs(
-      [...directoryPaths, ...dsns, ...usss, ...tars],
+      [...directoryPaths, ...dsns, ...usss],
       [LocalPathLib, DatasetLib, UssPathLib, TarCopybookLib],
       [],
     ),
