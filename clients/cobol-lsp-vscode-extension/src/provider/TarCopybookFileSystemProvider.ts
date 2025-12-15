@@ -17,11 +17,30 @@ export class TarCopybookFileSystemProvider
       return `${tarfsPath}$$${dialect}`;
     },
   );
+  private emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+  readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> =
+    this.emitter.event;
 
-  onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> =
-    new vscode.EventEmitter<vscode.FileChangeEvent[]>().event;
-  watch(_uri: unknown, _options: unknown): vscode.Disposable {
-    throw new Error("Method not implemented.");
+  private watchers = new Set<WatchEntry>();
+
+  private fireChange(event: vscode.FileChangeEvent) {
+    this.emitter.fire([event]);
+
+    if (event.type === vscode.FileChangeType.Deleted) {
+      this.clearCache();
+    }
+  }
+  watch(
+    resource: vscode.Uri,
+    opts: { recursive: boolean; excludes: string[] },
+  ): vscode.Disposable {
+    const entry: WatchEntry = { resource, opts, disposed: false };
+    this.watchers.add(entry);
+
+    return new vscode.Disposable(() => {
+      entry.disposed = true;
+      this.watchers.delete(entry);
+    });
   }
 
   /**
@@ -66,8 +85,8 @@ export class TarCopybookFileSystemProvider
     return result;
   }
 
-  createDirectory(_uri: unknown): void | Thenable<void> {
-    throw new Error("Method not implemented.");
+  createDirectory(uri: vscode.Uri): void | Thenable<void> {
+    this.fireChange({ type: vscode.FileChangeType.Created, uri });
   }
 
   /**
@@ -174,3 +193,8 @@ export class TarCopybookFileSystemProvider
     return queryMap;
   }
 }
+type WatchEntry = {
+  resource: vscode.Uri;
+  opts: { recursive: boolean; excludes: string[] };
+  disposed: boolean;
+};

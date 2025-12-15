@@ -65,9 +65,12 @@ export class TarCopybookLib implements CopybookLib {
       copybookName,
     );
     if (matchingFilePath)
-      return vscode.Uri.parse(
-        `${TarCopybookFileSystemProvider.SCHEME}://${tarFileUri.fsPath}?filePath=${matchingFilePath}#${dialect}`,
-      );
+      return vscode.Uri.from({
+        scheme: TarCopybookFileSystemProvider.SCHEME,
+        path: tarFileUri.fsPath,
+        query: `filePath=${matchingFilePath}`,
+        fragment: dialect,
+      });
   }
 
   async listCopybooks(documentUri: Uri, dialect: string): Promise<string[]> {
@@ -89,12 +92,14 @@ export class TarCopybookLib implements CopybookLib {
         variables,
       );
     }
+    const directory = vscode.Uri.from({
+      scheme: TarCopybookFileSystemProvider.SCHEME,
+      path: tarFileUri.fsPath,
+      query: `searchPath=${this.searchPattern}`,
+      fragment: dialect,
+    });
     return vscode.workspace.fs
-      .readDirectory(
-        vscode.Uri.parse(
-          `${TarCopybookFileSystemProvider.SCHEME}://${tarFileUri.fsPath}?searchPath=${this.searchPattern}#${dialect}`,
-        ),
-      )
+      .readDirectory(directory)
       .then((ele) => ele.map((e) => this.getFilenameFromPath(e[0])));
   }
 
@@ -111,13 +116,13 @@ export class TarCopybookLib implements CopybookLib {
       if ("profile" in config)
         return new TarCopybookLib(
           config["locationType"],
-          encodeURIComponent(config["tarFileLocation"]),
+          config["tarFileLocation"],
           config["searchPattern"],
           config["profile"],
         );
       return new TarCopybookLib(
         config["locationType"],
-        encodeURIComponent(config["tarFileLocation"]),
+        config["tarFileLocation"],
         config["searchPattern"],
       );
     }
@@ -129,12 +134,14 @@ export class TarCopybookLib implements CopybookLib {
     documentUri: Uri,
     copybookName: string,
   ) {
+    const directory = vscode.Uri.from({
+      scheme: TarCopybookFileSystemProvider.SCHEME,
+      path: tarFileUri.fsPath,
+      query: `searchPath=${this.searchPattern}`,
+      fragment: dialect,
+    });
     const allFiles = await vscode.workspace.fs
-      .readDirectory(
-        vscode.Uri.parse(
-          `${TarCopybookFileSystemProvider.SCHEME}://${tarFileUri.fsPath}?searchPath=${this.searchPattern}#${dialect}`,
-        ),
-      )
+      .readDirectory(directory)
       .then((ele) => ele.map((e) => e[0]));
 
     const allowedExtensions = await SettingsService.getCopybookExtension(

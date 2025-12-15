@@ -113,6 +113,7 @@ export async function activate(
       cobolTarFsProvider,
       {
         isCaseSensitive: true,
+        isReadonly: true,
       },
     ),
   );

@@ -26,7 +26,7 @@ export class TarUtil {
           fileMetadata: vscode.FileStat;
         };
       }[]
-    >((resolve, _reject) => {
+    >((resolve, reject) => {
       let isEbcidic: boolean | undefined;
       const extract = tar.extract();
       extract.on("entry", (header, stream, next) => {
@@ -81,6 +81,11 @@ export class TarUtil {
       extract.on("finish", () => {
         console.log("---reading archive complete ---");
         resolve(result);
+      });
+
+      extract.on("error", (err: Error) => {
+        reject(err);
+        console.log("---error on reading archive ---");
       });
 
       vscode.workspace.fs.readFile(tarFilePath).then((arr) => {
