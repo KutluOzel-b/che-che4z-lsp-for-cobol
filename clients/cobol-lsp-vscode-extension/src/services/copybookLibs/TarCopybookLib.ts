@@ -74,18 +74,31 @@ export class TarCopybookLib implements CopybookLib {
   }
 
   async listCopybooks(documentUri: Uri, dialect: string): Promise<string[]> {
-    const effectiveExternalApi =
-      this.locationType === "DSN"
-        ? externalApis.dsnService
-        : externalApis.ussService;
-
-    const tarFileUri =
-      this.locationType === "local"
-        ? vscode.Uri.parse(this.tarFileLocation)
-        : effectiveExternalApi?.getTarFileUri(this.tarFileLocation);
-
-    if (!tarFileUri) return [];
     const variables = getVariablesFromUri(documentUri, false);
+    const evaluatedTarPath = SettingsService.evaluateVariables(
+      this.tarFileLocation,
+      variables,
+    );
+    let tarFileUri: vscode.Uri | undefined;
+    if (this.locationType == "local") {
+      const local = SettingsService.prepareLocalSearchUris(
+        [evaluatedTarPath],
+        vscode.workspace.workspaceFolders ?? [],
+      );
+      tarFileUri = local ? local[0] : undefined;
+    } else {
+      const effectiveExternalApi =
+        this.locationType === "DSN"
+          ? externalApis.dsnService
+          : externalApis.ussService;
+
+      const isAvailableAlready =
+        await externalApis.isPresentLocally(evaluatedTarPath);
+      tarFileUri = effectiveExternalApi?.getTarFileUri(this.tarFileLocation);
+      if (!isAvailableAlready || !tarFileUri) {
+        return [];
+      }
+    }
     if (this.searchPattern) {
       this.searchPattern = SettingsService.evaluateVariables(
         this.searchPattern,
@@ -94,7 +107,7 @@ export class TarCopybookLib implements CopybookLib {
     }
     const directory = vscode.Uri.from({
       scheme: TarCopybookFileSystemProvider.SCHEME,
-      path: tarFileUri.fsPath,
+      path: tarFileUri?.fsPath,
       query: `searchPath=${this.searchPattern}`,
       fragment: dialect,
     });
