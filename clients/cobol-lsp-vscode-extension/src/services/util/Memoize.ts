@@ -52,4 +52,7 @@ export class Memoize<TArgs extends unknown[], TReturn> {
   clearCache = () => {
     this.cache.clear();
   };
+  getKeys = () => {
+    return this.cache.keys();
+  };
 }

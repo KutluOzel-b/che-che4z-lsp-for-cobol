@@ -3,22 +3,23 @@ import * as vscode from "vscode";
 import { Memoize } from "../services/util/Memoize";
 import { TarUtil } from "../services/util/TarUtil";
 
+const reg = /tar:(.*?)\$\$/;
 export class TarCopybookFileSystemProvider
   implements vscode.FileSystemProvider
 {
+  private emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   public static readonly SCHEME = "cobol-ls-tar";
   public tarCache = new Memoize(
     async (tarFileUri: vscode.Uri) => {
-      this.fireChange({ type: vscode.FileChangeType.Created, uri: tarFileUri });
-      return await TarUtil.readTarFile(tarFileUri);
+      return await TarUtil.readTarFile(tarFileUri, this.emitter);
     },
     undefined,
     (tarFileUri: vscode.Uri) => {
       const { tarfsPath, dialect } = this.getDetailsFromTarUri(tarFileUri);
-      return `${tarfsPath}$$${dialect}`;
+      return `tar:${tarfsPath}$$${dialect}`;
     },
   );
-  private emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+
   readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> =
     this.emitter.event;
 
@@ -115,6 +116,13 @@ export class TarCopybookFileSystemProvider
    * clear cache
    */
   public clearCache() {
+    for (const value of this.tarCache.getKeys()) {
+      const fspath = value.match(reg);
+      if (!fspath) continue;
+      const uri = vscode.Uri.parse(fspath[1]);
+      this.fireChange({ type: vscode.FileChangeType.Changed, uri: uri });
+    }
+
     this.tarCache.clearCache();
   }
 

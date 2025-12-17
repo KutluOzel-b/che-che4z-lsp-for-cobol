@@ -7,7 +7,10 @@ export class TarUtil {
     return [...input].map((it) => this.EBCDIC_TO_ASCII[it]);
   }
 
-  public static async readTarFile(tarFilePath: vscode.Uri) {
+  public static async readTarFile(
+    tarFilePath: vscode.Uri,
+    emitter: vscode.EventEmitter<vscode.FileChangeEvent[]>,
+  ) {
     const result: {
       fileName: string;
       fileData: {
@@ -30,7 +33,11 @@ export class TarUtil {
       let isEbcidic: boolean | undefined;
       const extract = tar.extract();
       extract.on("entry", (header, stream, next) => {
+        const virtualPath = vscode.Uri.joinPath(tarFilePath, header.name);
         if (header.type === "file") {
+          emitter.fire([
+            { type: vscode.FileChangeType.Created, uri: virtualPath },
+          ]);
           stream.on("data", (chunk: Buffer) => {
             currentDirFiles.push(header.name);
             const fileName = header.name;
@@ -63,6 +70,9 @@ export class TarUtil {
             next(err);
           });
         } else if (header.type === "directory") {
+          emitter.fire([
+            { type: vscode.FileChangeType.Created, uri: virtualPath },
+          ]);
           result.push({
             fileName: currentDirName,
             fileData: {
