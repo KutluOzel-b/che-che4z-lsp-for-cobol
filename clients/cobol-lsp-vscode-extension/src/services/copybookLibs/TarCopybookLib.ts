@@ -33,6 +33,7 @@ export class TarCopybookLib implements CopybookLib {
         vscode.workspace.workspaceFolders ?? [],
       );
       tarFileUri = local ? local[0] : undefined;
+      if (!(tarFileUri && (await vscode.workspace.fs.stat(tarFileUri)))) return;
     } else {
       const effectiveExternalApi =
         this.locationType === "DSN"
@@ -49,8 +50,8 @@ export class TarCopybookLib implements CopybookLib {
           profile,
         );
       }
+      if (!tarFileUri) return;
     }
-    if (!tarFileUri) return;
 
     if (this.searchPattern) {
       this.searchPattern = SettingsService.evaluateVariables(
@@ -86,6 +87,8 @@ export class TarCopybookLib implements CopybookLib {
         vscode.workspace.workspaceFolders ?? [],
       );
       tarFileUri = local ? local[0] : undefined;
+      if (!(tarFileUri && (await vscode.workspace.fs.stat(tarFileUri))))
+        return [];
     } else {
       const effectiveExternalApi =
         this.locationType === "DSN"
