@@ -8,8 +8,6 @@ export class TarUtil {
   }
 
   public static async readTarFile(tarFilePath: vscode.Uri) {
-    const fileStat = await vscode.workspace.fs.stat(tarFilePath);
-    if (!fileStat) return;
     const result: {
       fileName: string;
       fileData: {
