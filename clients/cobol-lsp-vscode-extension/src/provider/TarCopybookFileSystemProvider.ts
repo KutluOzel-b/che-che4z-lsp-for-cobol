@@ -9,6 +9,7 @@ export class TarCopybookFileSystemProvider
   public static readonly SCHEME = "cobol-ls-tar";
   public tarCache = new Memoize(
     async (tarFileUri: vscode.Uri) => {
+      this.fireChange({ type: vscode.FileChangeType.Created, uri: tarFileUri });
       return await TarUtil.readTarFile(tarFileUri);
     },
     undefined,
@@ -21,8 +22,6 @@ export class TarCopybookFileSystemProvider
   readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> =
     this.emitter.event;
 
-  private watchers = new Set<WatchEntry>();
-
   private fireChange(event: vscode.FileChangeEvent) {
     this.emitter.fire([event]);
 
@@ -31,16 +30,10 @@ export class TarCopybookFileSystemProvider
     }
   }
   watch(
-    resource: vscode.Uri,
-    opts: { recursive: boolean; excludes: string[] },
+    _resource: vscode.Uri,
+    _opts: { recursive: boolean; excludes: string[] },
   ): vscode.Disposable {
-    const entry: WatchEntry = { resource, opts, disposed: false };
-    this.watchers.add(entry);
-
-    return new vscode.Disposable(() => {
-      entry.disposed = true;
-      this.watchers.delete(entry);
-    });
+    return { dispose() {} };
   }
 
   /**
@@ -85,8 +78,8 @@ export class TarCopybookFileSystemProvider
     return result;
   }
 
-  createDirectory(uri: vscode.Uri): void | Thenable<void> {
-    this.fireChange({ type: vscode.FileChangeType.Created, uri });
+  createDirectory(_uri: unknown): void | Thenable<void> {
+    throw vscode.FileSystemError.NoPermissions();
   }
 
   /**
@@ -193,8 +186,3 @@ export class TarCopybookFileSystemProvider
     return queryMap;
   }
 }
-type WatchEntry = {
-  resource: vscode.Uri;
-  opts: { recursive: boolean; excludes: string[] };
-  disposed: boolean;
-};

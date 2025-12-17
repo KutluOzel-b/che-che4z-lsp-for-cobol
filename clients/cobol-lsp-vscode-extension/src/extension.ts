@@ -112,7 +112,6 @@ export async function activate(
       TarCopybookFileSystemProvider.SCHEME,
       cobolTarFsProvider,
       {
-        isCaseSensitive: true,
         isReadonly: true,
       },
     ),
