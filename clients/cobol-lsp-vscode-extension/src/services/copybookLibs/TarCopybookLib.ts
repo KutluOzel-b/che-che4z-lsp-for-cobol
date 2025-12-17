@@ -40,9 +40,10 @@ export class TarCopybookLib implements CopybookLib {
           ? externalApis.dsnService
           : externalApis.ussService;
 
+      tarFileUri = effectiveExternalApi?.getTarFileUri(evaluatedTarPath);
       const isAvailableAlready =
-        await externalApis.isPresentLocally(evaluatedTarPath);
-      tarFileUri = effectiveExternalApi?.getTarFileUri(this.tarFileLocation);
+        await externalApis.isPresentLocally(tarFileUri);
+
       if (!isAvailableAlready) {
         const profile = this.getProfile(documentUri);
         await externalApis.dsnService?.downloadFile(
@@ -94,10 +95,10 @@ export class TarCopybookLib implements CopybookLib {
         this.locationType === "DSN"
           ? externalApis.dsnService
           : externalApis.ussService;
-
+      tarFileUri = effectiveExternalApi?.getTarFileUri(evaluatedTarPath);
       const isAvailableAlready =
-        await externalApis.isPresentLocally(evaluatedTarPath);
-      tarFileUri = effectiveExternalApi?.getTarFileUri(this.tarFileLocation);
+        await externalApis.isPresentLocally(tarFileUri);
+
       if (!isAvailableAlready || !tarFileUri) {
         return [];
       }
