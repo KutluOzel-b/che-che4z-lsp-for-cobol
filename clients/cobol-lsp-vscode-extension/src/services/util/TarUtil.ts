@@ -18,9 +18,6 @@ export class TarUtil {
         fileMetadata: vscode.FileStat;
       };
     }[] = [];
-    let currentDirFiles: string[] = [];
-    let currentDirName: string;
-    let dirMetaData: vscode.FileStat;
     return new Promise<
       {
         fileName: string;
@@ -30,6 +27,7 @@ export class TarUtil {
         };
       }[]
     >((resolve, reject) => {
+      const links: { name: string; linkname: string }[] = [];
       let isEbcidic: boolean | undefined;
       const extract = tar.extract();
       extract.on("entry", (header, stream, next) => {
@@ -39,7 +37,6 @@ export class TarUtil {
             { type: vscode.FileChangeType.Created, uri: virtualPath },
           ]);
           stream.on("data", (chunk: Buffer) => {
-            currentDirFiles.push(header.name);
             const fileName = header.name;
             const fileMetadata: vscode.FileStat =
               this.getFileMetadataFromHeader(header);
@@ -73,22 +70,24 @@ export class TarUtil {
           emitter.fire([
             { type: vscode.FileChangeType.Created, uri: virtualPath },
           ]);
-          result.push({
-            fileName: currentDirName,
-            fileData: {
-              fileContent: currentDirFiles,
-              fileMetadata: dirMetaData,
-            },
-          });
-          currentDirFiles = [];
-          currentDirName = header.name;
-          dirMetaData = this.getFileMetadataFromHeader(header);
+          next();
+        } else if (header.type == "symlink" || header.type == "link") {
+          if (header.linkname)
+            links.push({ linkname: header.linkname, name: header.name });
+          next();
         } else {
           next();
         }
       });
 
       extract.on("finish", () => {
+        links.forEach((link) => {
+          const match = result.find((x) => link.linkname.includes(x.fileName));
+          if (match) {
+            match.fileName = link.name;
+            result.push(match);
+          }
+        });
         console.log("---reading archive complete ---");
         resolve(result);
       });
