@@ -116,8 +116,7 @@ describe("TarCopybookFileSystemProvider", () => {
       try {
         await provider.createDirectory(fileUri);
       } catch (error: unknown) {
-        if (error instanceof Error)
-          expect(error.message).toBe("Method not implemented.");
+        if (error instanceof Error) expect(error.message).toBe("No Permission");
       }
     });
 

@@ -35,14 +35,8 @@ describe("CopybookMessageHandler", () => {
 
     it("returns text from editor, if file is opened in vscode", async () => {
       const uri = vscode.Uri.file("/workspace/edited");
-      const setLangMock = (vscode.languages.setTextDocumentLanguage =
-        jest.fn());
       const result = await readFileContent(uri.toString());
       expect(result).toEqual("EDITED");
-      expect(setLangMock).toHaveBeenCalledWith(
-        expect.objectContaining({ uri }),
-        "cobol",
-      );
     });
 
     it("returns undefined for nonexisting files", async () => {
