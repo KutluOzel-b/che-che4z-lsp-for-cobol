@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Broadcom.
+ * Copyright (c) 2025 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program and the accompanying materials are made
@@ -12,7 +12,6 @@
  *    Broadcom, Inc. - initial API and implementation
  *
  */
-
 package org.eclipse.lsp.cobol.usecases;
 
 import com.google.common.collect.ImmutableList;
@@ -24,18 +23,24 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Range;
 import org.junit.jupiter.api.Test;
 
-/** This test checks that a variable definition with PIC cannot contain nested elements */
-class TestElementWithPICNotAllowedAsGroup {
+/**
+ * This test verifies that unknown PIC definitions trigger diagnostic messages rather than causing a
+ * null pointer exception. In this case below, PIC =(10)9.99-, with equal symbol.
+ */
+class TestUnexpectedPICDefinition {
 
   private static final String TEXT =
       "       IDENTIFICATION DIVISION.\n"
           + "       PROGRAM-ID. TEST1.\n"
           + "       DATA DIVISION.\n"
           + "       WORKING-STORAGE SECTION.\n"
-          + "       01  {$*PARENT} PIC 99.\n"
-          + "           10  {$*CHILD1|1} PIC 99.\n"
-          + "       PROCEDURE DIVISION. \n"
-          + "           MOVE 00 TO {_CHILD1 OF PARENT|2_}.\n";
+          + "       01  {$*VRB|1} PIC {=|2}(10)9.99-.\n"
+          + "       PROCEDURE DIVISION.\n"
+          + "           STOP RUN.";
+
+  private static final String MESSAGE1 =
+      "A \"PICTURE\" or \"USAGE INDEX\" clause was not found for elementary item VRB";
+  private static final String MESSAGE2 = "Syntax error on '='";
 
   @Test
   void test() {
@@ -45,15 +50,9 @@ class TestElementWithPICNotAllowedAsGroup {
         ImmutableMap.of(
             "1",
             new Diagnostic(
-                new Range(),
-                "CHILD1: Only 01, 66 and 77 level numbers are allowed at the highest level",
-                DiagnosticSeverity.Error,
-                ErrorSource.PARSING.getText()),
+                new Range(), MESSAGE1, DiagnosticSeverity.Error, ErrorSource.PARSING.getText()),
             "2",
             new Diagnostic(
-                new Range(),
-                "Variable CHILD1 does not exist in structure PARENT",
-                DiagnosticSeverity.Error,
-                ErrorSource.PARSING.getText())));
+                new Range(), MESSAGE2, DiagnosticSeverity.Error, ErrorSource.PARSING.getText())));
   }
 }

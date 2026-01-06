@@ -32,7 +32,6 @@ on:
     branches:
       - development
       - master
-      - test-build
 
 jobs:
   checks:
@@ -119,31 +118,8 @@ jobs:
           name: native-build-configuration
           path: server/engine/target/native/agent-output/test/*
 
-  setEnvVarible:
-    strategy:
-      matrix:
-        project:
-          - clients/cobol-lsp-vscode-extension
-          - clients/idms-dialect-support
-          - clients/daco-dialect-support
-    steps:      
-      - name: set build id
-        run: |
-          if [ github.event_name == 'pull_request' || github.event.inputs.include_build_number == 'true' ]; then
-            BUILD_ID: ${{github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_number }}
-          else if [ github.event_name == 'push' && github.event.inputs.include_build_number != 'false']
-            BUILD_ID:  ${{ github.run_number }}
-          fi
-          echo "BUILD_ID=$BUILD_ID" >> $GITHUB_ENV     
-      - name: update version with PR or build number
-        if: ${{ env.BUILD_ID != '' }}
-        working-directory: ${{ matrix.project }}
-        run: |
-          node -e "const fs=require('fs');const fileName='./package.json';var content=require(fileName);content.version=content.version+'\+'+'${{ env.BUILD_ID }}';fs.writeFileSync(fileName,JSON.stringify(content,null,2));"
-
   buildPlatformIndependedPart:
     runs-on: ubuntu-latest
-    needs: [setEnvVarible]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -200,6 +176,13 @@ jobs:
         run: |
           npm ci
           npm run test
+      - name: update version with PR or build number
+        if: github.event_name == 'pull_request' || github.event.inputs.include_build_number == 'true'
+        working-directory: clients/cobol-lsp-vscode-extension
+        env:
+          BUILD_ID: ${{github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_number }}
+        run: |
+          node -e "const fs=require('fs');const fileName='./package.json';var content=require(fileName);content.version=content.version+'\+'+'${{ env.BUILD_ID }}';fs.writeFileSync(fileName,JSON.stringify(content,null,2));"
       - name: Package default COBOL LS vsix
         working-directory: clients/cobol-lsp-vscode-extension
         run: |
@@ -267,6 +250,13 @@ jobs:
         run: |
           npm ci
           npm run test:web
+      - name: update version with PR or build number
+        if: github.event_name == 'pull_request' || github.event.inputs.include_build_number == 'true'
+        working-directory: clients/cobol-lsp-vscode-extension
+        env:
+          BUILD_ID: ${{github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_number }}
+        run: |
+          node -e "const fs=require('fs');const fileName='./package.json';var content=require(fileName);content.version=content.version+'\+'+'${{ env.BUILD_ID }}';fs.writeFileSync(fileName,JSON.stringify(content,null,2));"
       - name: Package COBOL LS vsix for Web
         working-directory: clients/cobol-lsp-vscode-extension
         run: |
@@ -381,6 +371,24 @@ jobs:
           name: staging-${{ env.target }}
           path: server/engine/target/engine
           if-no-files-found: error
+
+  checkJava8:
+    name: Check Java 8 compatibility
+    runs-on: ubuntu-latest
+    needs: [buildPlatformIndependedPart]
+    steps:
+      - name: Download JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: jar
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+      - name: Print java version
+        run: java -version
+      - name: Run JAR
+        run: java -jar server.jar --help
 
   packageNative:
     strategy:
