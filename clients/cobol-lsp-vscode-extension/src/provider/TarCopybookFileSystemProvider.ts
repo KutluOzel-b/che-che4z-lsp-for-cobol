@@ -1,9 +1,13 @@
-import { Minimatch } from "minimatch";
 import * as vscode from "vscode";
 import { Memoize } from "../services/util/Memoize";
-import { TarUtil } from "../services/util/TarUtil";
+import {
+  splitTarfilePath,
+  TarContent,
+  TarUtil,
+} from "../services/util/TarUtil";
 
 const reg = /tar:(.*?)\$\$/;
+export const SEPARATOR = ":";
 export class TarCopybookFileSystemProvider
   implements vscode.FileSystemProvider
 {
@@ -15,8 +19,7 @@ export class TarCopybookFileSystemProvider
     },
     undefined,
     (tarFileUri: vscode.Uri) => {
-      const { tarfsPath, dialect } = this.getDetailsFromTarUri(tarFileUri);
-      return `tar:${tarfsPath}$$${dialect}`;
+      return `${TarCopybookFileSystemProvider.SCHEME}:${tarFileUri.fsPath}`;
     },
   );
 
@@ -38,16 +41,18 @@ export class TarCopybookFileSystemProvider
   }
 
   /**
-   * `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}?filePath=${evaluatedInternalPath}#${dialect}`
+   * `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}${SEPERATOR}${pathWithinTar}`
    * @param uri
    * @returns
    */
   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
-    const { tarfsPath, filePath } = this.getDetailsFromTarUri(uri);
+    const { tarfilePath: tarfilePath, directory: directory } = splitTarfilePath(
+      uri.fsPath,
+    );
     const matchingFiles = await this.fetchMatchingFiles(
-      tarfsPath,
+      tarfilePath,
       uri,
-      filePath,
+      directory,
     );
     if (matchingFiles && matchingFiles[0]) {
       return matchingFiles[0].fileData.fileMetadata;
@@ -56,24 +61,23 @@ export class TarCopybookFileSystemProvider
   }
 
   /**
-   * `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}?searchPath=${evaluatedInternalPath}#${dialect}`
-   * get list of all the files within a TAR file and search pattern
+   * `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}${SEPERATOR}${directoryPathWithinTar}`
+   * get one level entries of a directory within TAR file
    * @param uri
    */
   async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
-    const { tarfsPath, searchPath } = this.getDetailsFromTarUri(uri);
-    const tarContent = await this.tarCache.execute(vscode.Uri.file(tarfsPath));
+    const { tarfilePath: tarfilePath, directory: directory } = splitTarfilePath(
+      uri.fsPath,
+    );
+    const tarfileUri = vscode.Uri.file(tarfilePath);
+    const tarContent = await this.tarCache.execute(tarfileUri);
     if (!tarContent) {
       throw new Error(`Failed to retrieve content for URI: ${uri.toString()}`);
     }
     const result: [string, vscode.FileType][] = [];
-    const matchingFiles = tarContent.filter((e) =>
-      new Minimatch(searchPath + "/*", {
-        nocase: true,
-        dot: true,
-      }).match(e.fileName),
-    );
-    matchingFiles.forEach((t) =>
+
+    const contents = this.getOneLevelChildren(tarContent, directory);
+    contents.forEach((t) =>
       result.push([t.fileName, t.fileData.fileMetadata.type]),
     );
     return result;
@@ -84,17 +88,20 @@ export class TarCopybookFileSystemProvider
   }
 
   /**
-   * `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}?filePath=${evaluatedInternalPath}#${dialect}`
+   * `${TarFileContentProvider.SCHEME}://${tarFileUri.fsPath}${SEPERATOR}${filePathWitihTar}`
+   * get contents of a file within TAR file with specified path
    * @param uri
    * @returns
    */
   async readFile(uri: vscode.Uri) {
-    const { tarfsPath, filePath, dialect } = this.getDetailsFromTarUri(uri);
+    const { tarfilePath: tarfileUri, directory: directory } = splitTarfilePath(
+      uri.fsPath,
+    );
 
     const matchingFiles = await this.fetchMatchingFiles(
-      tarfsPath,
+      tarfileUri,
       uri,
-      filePath,
+      directory,
     );
 
     if (
@@ -106,9 +113,7 @@ export class TarCopybookFileSystemProvider
       // return the first found file
       return matchingFiles[0].fileData.fileContent;
     }
-    console.log(
-      `file ${filePath} not found in tar ${tarfsPath} for dialect ${dialect}`,
-    );
+    console.log(`file ${directory} not found in tar ${tarfileUri}`);
     throw vscode.FileSystemError.FileNotFound();
   }
 
@@ -140,7 +145,9 @@ export class TarCopybookFileSystemProvider
         "Need searchPath to locate file",
       );
     const matchingFiles = tarContent.filter(
-      (e) => e.fileName.toUpperCase() === filePath.toUpperCase(),
+      (e) =>
+        e.fileName.toUpperCase() === filePath.toUpperCase() &&
+        e.fileData.fileMetadata.type === vscode.FileType.File,
     );
     return matchingFiles;
   }
@@ -170,27 +177,27 @@ export class TarCopybookFileSystemProvider
     throw vscode.FileSystemError.NoPermissions();
   }
 
-  private getDetailsFromTarUri(uri: vscode.Uri) {
-    const tarfsPath = uri.fsPath;
-    const queryParams = this.parseQuery(new URLSearchParams(uri.query));
-    const searchPath = queryParams.get("searchPath");
-    const filePath = queryParams.get("filePath");
-    const extensions = queryParams.get("extensions")?.split(",") || [];
-    const dialect = uri.fragment || "COBOL";
-    return {
-      tarfsPath,
-      searchPath,
-      extensions,
-      filePath,
-      dialect,
-    };
-  }
+  private getOneLevelChildren(
+    content: TarContent[],
+    input: string,
+  ): TarContent[] {
+    const base = input.replace(/^\/|\/$/g, "");
+    const baseDepth = base === "" ? 0 : base.split("/").length;
+    const result: TarContent[] = [];
 
-  private parseQuery(params: URLSearchParams): Map<string, string> {
-    const queryMap = new Map<string, string>();
-    for (const [key, value] of params.entries()) {
-      queryMap.set(key, value);
+    for (const p of content) {
+      const cleanPath = p.fileName.replace(/^\/|\/$/g, "");
+
+      if (!cleanPath.startsWith(base)) continue;
+
+      const parts = cleanPath.split("/");
+
+      if (parts.length <= baseDepth) continue;
+
+      if (parts.length === baseDepth + 1) {
+        result.push({ fileName: parts[baseDepth], fileData: p.fileData });
+      }
     }
-    return queryMap;
+    return result;
   }
 }

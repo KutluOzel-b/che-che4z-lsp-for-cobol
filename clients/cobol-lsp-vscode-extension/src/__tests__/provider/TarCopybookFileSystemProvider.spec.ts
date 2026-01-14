@@ -1,19 +1,50 @@
 import { TarCopybookFileSystemProvider } from "../../provider/TarCopybookFileSystemProvider";
 import * as vscode from "vscode";
-import { extractTarToContent } from "../../Helper";
+import { TarUtil } from "../../services/util/TarUtil";
+import * as nodeFs from "fs/promises";
 
 describe("TarCopybookFileSystemProvider", () => {
+  vscode.workspace.fs.readFile = jest
+    .fn()
+    .mockImplementation(async (uri: vscode.Uri) => {
+      return nodeFs.readFile(uri.fsPath);
+    });
+
+  vscode.workspace.fs.stat = jest
+    .fn()
+    .mockImplementation(async (uri: vscode.Uri) => {
+      return nodeFs.stat(uri.fsPath);
+    });
+
   const provider = new TarCopybookFileSystemProvider();
-  const tarContent = extractTarToContent("output.cobol-ls-tar");
+  const testFileUri = vscode.Uri.joinPath(
+    vscode.Uri.joinPath(vscode.Uri.parse(__dirname), ".."),
+    "resources",
+    "tar",
+    "output.cobol-ls-tar",
+  );
+
+  const emitter_mock: vscode.EventEmitter<vscode.FileChangeEvent[]> = {
+    dispose: jest.fn().mockResolvedValue({}),
+    event: jest.fn().mockResolvedValue({}),
+    fire: jest.fn().mockResolvedValue({}),
+  };
+  const tarContent = TarUtil.readTarFile(testFileUri, emitter_mock);
   beforeEach(async () => {
-    provider.tarCache.execute = jest.fn().mockResolvedValue(await tarContent);
+    const resolved = await tarContent;
+    provider.tarCache.execute = jest.fn().mockResolvedValue(resolved);
   });
 
   describe("stat", () => {
     test("should return FileStat for an existing file", async () => {
-      const uri = vscode.Uri.parse(
-        "tar://my/archive.tar?filePath=APPLDICT/EMPRPT/RECORD/EMPOSITION.CPY#COBOL",
-      );
+      const uri = vscode.Uri.from({
+        path: vscode.Uri.joinPath(
+          testFileUri,
+          ":",
+          "APPLDICT/EMPRPT/RECORD/EMPOSITION.CPY",
+        ).fsPath,
+        scheme: testFileUri.scheme,
+      });
       const stat = await provider.stat(uri);
       expect(stat.type).toBe(vscode.FileType.File);
       expect(stat.size).toBe(710);
@@ -22,9 +53,7 @@ describe("TarCopybookFileSystemProvider", () => {
     });
 
     test("should return FileStat for a non existing file", async () => {
-      const uri = vscode.Uri.parse(
-        "tar://my/archive.tar?filePath=SOME.CPY#COBOL",
-      );
+      const uri = vscode.Uri.parse("tar://my/archive.tar/:/SOME.CPY");
       await expect(provider.stat(uri)).rejects.toThrow(
         vscode.FileSystemError.FileNotFound(uri).message,
       );
@@ -34,13 +63,14 @@ describe("TarCopybookFileSystemProvider", () => {
   describe("readDirectory", () => {
     test("should return list of files for a search path", async () => {
       const uri = vscode.Uri.parse(
-        "tar://my/archive.tar/?searchPath=APPLDICT/EMPRPT",
+        "cobol-ls-tar://my/archive.tar/:/APPLDICT/EMPRPT",
       );
       const entries = await provider.readDirectory(uri);
 
       const expectedNames = [
-        "APPLDICT/EMPRPT/IDMS-STATUS.CPY",
-        "APPLDICT/EMPRPT/SUBSCHEMA-CONTROL.CPY",
+        "SUBSCHEMA-CONTROL.CPY",
+        "RECORD",
+        "IDMS-STATUS.CPY",
       ];
 
       expect(entries.map((e) => e[0])).toEqual(
@@ -50,7 +80,7 @@ describe("TarCopybookFileSystemProvider", () => {
 
     test("should throw FileNotFound for reading a non-existent directory", async () => {
       const uri = vscode.Uri.parse(
-        "tar://my/archive.tar?searchPath=NON_EXISTENT_DIR/EMPRPT",
+        "tar://my/archive.tar/:/NON_EXISTENT_DIR/EMPRPT",
       );
       const entries = await provider.readDirectory(uri);
 
@@ -60,8 +90,10 @@ describe("TarCopybookFileSystemProvider", () => {
 
   describe("readFile", () => {
     test("should return file content as Uint8Array for an existing file", async () => {
-      const uri = vscode.Uri.parse(
-        "tar://my/archive.tar?filePath=APPLDICT/EMPRPT/RECORD/JOB.CPY",
+      const uri = vscode.Uri.joinPath(
+        testFileUri,
+        ":",
+        "APPLDICT/EMPRPT/RECORD/JOB.CPY",
       );
       const content = await provider.readFile(uri);
       const expectedCopybookContent =
@@ -89,7 +121,7 @@ describe("TarCopybookFileSystemProvider", () => {
 
     test("should throw FileNotFound for a non-existent file", async () => {
       const uri = vscode.Uri.parse(
-        "tar://my/archive.tar?filePath=NO/EXISTING/JOB.CPY",
+        "cobol-ls-tar://my/archive.tar/:/NO/EXISTING/JOB.CPY",
       );
 
       await expect(provider.readFile(uri)).rejects.toThrow(
@@ -99,7 +131,7 @@ describe("TarCopybookFileSystemProvider", () => {
   });
 
   describe("Read-Only Operations", () => {
-    const fileUri = vscode.Uri.parse("tar://my/archive.tar");
+    const fileUri = vscode.Uri.parse("cobol-ls-tar://my/archive.tar");
 
     test("writeFile should throw NoPermissions", async () => {
       try {
@@ -129,7 +161,9 @@ describe("TarCopybookFileSystemProvider", () => {
     });
 
     test("rename should throw NoPermissions", async () => {
-      const newUri = vscode.Uri.parse("tar://my/archive.tar/new-file.txt");
+      const newUri = vscode.Uri.parse(
+        "cobol-ls-tar://my/archive.tar/new-file.txt",
+      );
       try {
         await provider.rename(fileUri, newUri, { overwrite: true });
       } catch (error: unknown) {

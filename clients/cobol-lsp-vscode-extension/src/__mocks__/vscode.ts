@@ -412,3 +412,9 @@ export interface Event<T> {
     disposables?: unknown[],
   ): unknown;
 }
+
+export enum FileChangeType {
+  Changed = 1,
+  Created = 2,
+  Deleted = 3,
+}

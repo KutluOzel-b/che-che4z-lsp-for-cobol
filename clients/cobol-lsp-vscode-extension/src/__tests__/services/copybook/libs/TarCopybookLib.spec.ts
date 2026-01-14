@@ -43,11 +43,9 @@ describe("Tar copybook lib tests", () => {
       );
       expect(result).toBeTruthy();
       const expectedValue = vscode.Uri.from({
-        scheme: "tar",
+        scheme: "cobol-ls-tar",
         authority: "",
-        path: "/storage/tar/path/for/tar",
-        query: "filePath=APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY",
-        fragment: "COBOL",
+        path: "/storage/tar/path/for/tar/:/APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY",
       });
       expect(result instanceof vscode.Uri).toBeTruthy();
       expect((result as vscode.Uri).fsPath).toBe(expectedValue.fsPath);
@@ -131,9 +129,8 @@ describe("Tar copybook lib tests", () => {
         vscode.Uri.file("/program.cbl"),
         DEFAULT_DIALECT,
       );
-      expect(result.length).toBe(2);
-      expect(new Set(result).has("DEPARTMENT")).toBeTruthy();
-      expect(new Set(result).has("FILE")).toBeTruthy();
+      expect(result.length).toBe(1);
+      expect(result.includes("DEPARTMENT")).toBeTruthy();
     });
     describe("tar doesn't exists", () => {});
   });
