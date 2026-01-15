@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { Memoize } from "../services/util/Memoize";
 import { splitTarfileUri, TarContent, TarUtil } from "../services/util/TarUtil";
+import { sep } from "path";
 
 const reg = /tar:(.*?)\$\$/;
 export const SEPARATOR = ":";
@@ -173,7 +174,7 @@ export class TarCopybookFileSystemProvider
     input: string,
   ): TarContent[] {
     const base = input.replace(/^\/|\/$/g, "");
-    const baseDepth = base === "" ? 0 : base.split("/").length;
+    const baseDepth = base === "" ? 0 : base.split(sep).length;
     const result: TarContent[] = [];
 
     for (const p of content) {
@@ -181,7 +182,7 @@ export class TarCopybookFileSystemProvider
 
       if (!cleanPath.startsWith(base)) continue;
 
-      const parts = cleanPath.split("/");
+      const parts = cleanPath.split(sep);
 
       if (parts.length <= baseDepth) continue;
 

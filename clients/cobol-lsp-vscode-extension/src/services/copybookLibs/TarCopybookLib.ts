@@ -13,6 +13,7 @@ import { getVariablesFromUri } from "../util/FSUtils";
 import { Minimatch } from "minimatch";
 import { splitTarfileUri } from "../util/TarUtil";
 import { outputChannel } from "../util/OutputChannel";
+import { sep } from "path";
 
 export class TarCopybookLib implements CopybookLib {
   private matcher: Minimatch;
@@ -209,7 +210,7 @@ export class TarCopybookLib implements CopybookLib {
   }
 
   private getFilenameFromPath(file: string, withExtension: boolean = false) {
-    const lastSlashIndex = file.lastIndexOf("/");
+    const lastSlashIndex = file.lastIndexOf(sep);
     const filename =
       lastSlashIndex === -1 ? file : file.substring(lastSlashIndex + 1);
     return withExtension
