@@ -17,7 +17,7 @@ describe("TarCopybookFileSystemProvider", () => {
     });
 
   const provider = new TarCopybookFileSystemProvider();
-  const testFileUri = vscode.Uri.joinPath(
+  let testFileUri = vscode.Uri.joinPath(
     vscode.Uri.joinPath(vscode.Uri.parse(__dirname), ".."),
     "resources",
     "tar",
@@ -31,6 +31,12 @@ describe("TarCopybookFileSystemProvider", () => {
   };
   const tarContent = TarUtil.readTarFile(testFileUri, emitter_mock);
   beforeEach(async () => {
+    testFileUri = vscode.Uri.joinPath(
+      vscode.Uri.joinPath(vscode.Uri.parse(__dirname), ".."),
+      "resources",
+      "tar",
+      "output.cobol-ls-tar",
+    );
     const resolved = await tarContent;
     provider.tarCache.execute = jest.fn().mockResolvedValue(resolved);
   });
