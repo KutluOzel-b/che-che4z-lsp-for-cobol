@@ -53,7 +53,7 @@ describe("TarCopybookFileSystemProvider", () => {
     });
 
     test("should return FileStat for a non existing file", async () => {
-      const uri = vscode.Uri.parse("tar://my/archive.tar/:/SOME.CPY");
+      const uri = vscode.Uri.parse("cobol-ls-tar://my/archive.tar/:/SOME.CPY");
       await expect(provider.stat(uri)).rejects.toThrow(
         vscode.FileSystemError.FileNotFound(uri).message,
       );
@@ -62,9 +62,10 @@ describe("TarCopybookFileSystemProvider", () => {
 
   describe("readDirectory", () => {
     test("should return list of files for a search path", async () => {
-      const uri = vscode.Uri.parse(
-        "cobol-ls-tar://my/archive.tar/:/APPLDICT/EMPRPT",
-      );
+      const uri = vscode.Uri.from({
+        path: vscode.Uri.joinPath(testFileUri, ":", "APPLDICT/EMPRPT").fsPath,
+        scheme: testFileUri.scheme,
+      });
       const entries = await provider.readDirectory(uri);
 
       const expectedNames = [
@@ -79,9 +80,12 @@ describe("TarCopybookFileSystemProvider", () => {
     });
 
     test("should throw FileNotFound for reading a non-existent directory", async () => {
-      const uri = vscode.Uri.parse(
-        "tar://my/archive.tar/:/NON_EXISTENT_DIR/EMPRPT",
-      );
+      const uri = vscode.Uri.from({
+        path: vscode.Uri.joinPath(testFileUri, ":", "NON_EXISTENT_DIR/EMPRPT")
+          .fsPath,
+        scheme: testFileUri.scheme,
+      });
+
       const entries = await provider.readDirectory(uri);
 
       expect(entries.length).toBe(0);
@@ -131,11 +135,9 @@ describe("TarCopybookFileSystemProvider", () => {
   });
 
   describe("Read-Only Operations", () => {
-    const fileUri = vscode.Uri.parse("cobol-ls-tar://my/archive.tar");
-
     test("writeFile should throw NoPermissions", async () => {
       try {
-        await provider.writeFile(fileUri, new Uint8Array(), {
+        await provider.writeFile(testFileUri, new Uint8Array(), {
           create: true,
           overwrite: true,
         });
@@ -146,7 +148,7 @@ describe("TarCopybookFileSystemProvider", () => {
 
     test("createDirectory should throw NoPermissions", async () => {
       try {
-        await provider.createDirectory(fileUri);
+        await provider.createDirectory(testFileUri);
       } catch (error: unknown) {
         if (error instanceof Error) expect(error.message).toBe("No Permission");
       }
@@ -154,7 +156,7 @@ describe("TarCopybookFileSystemProvider", () => {
 
     test("delete should throw NoPermissions", async () => {
       try {
-        await provider.delete(fileUri, { recursive: true });
+        await provider.delete(testFileUri, { recursive: true });
       } catch (error: unknown) {
         if (error instanceof Error) expect(error.message).toBe("No Permission");
       }
@@ -165,7 +167,7 @@ describe("TarCopybookFileSystemProvider", () => {
         "cobol-ls-tar://my/archive.tar/new-file.txt",
       );
       try {
-        await provider.rename(fileUri, newUri, { overwrite: true });
+        await provider.rename(testFileUri, newUri, { overwrite: true });
       } catch (error: unknown) {
         if (error instanceof Error) expect(error.message).toBe("No Permission");
       }

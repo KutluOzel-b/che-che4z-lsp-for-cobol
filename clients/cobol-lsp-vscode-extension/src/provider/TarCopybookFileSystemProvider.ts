@@ -145,9 +145,7 @@ export class TarCopybookFileSystemProvider
         "Need searchPath to locate file",
       );
     const matchingFiles = tarContent.filter(
-      (e) =>
-        e.fileName.toUpperCase() === filePath.toUpperCase() &&
-        e.fileData.fileMetadata.type === vscode.FileType.File,
+      (e) => e.fileName.toUpperCase() === filePath.toUpperCase(),
     );
     return matchingFiles;
   }
