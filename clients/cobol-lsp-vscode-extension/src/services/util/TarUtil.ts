@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as tar from "tar-stream";
 import { Readable } from "stream";
 import { SEPARATOR } from "../../provider/TarCopybookFileSystemProvider";
+import { sep } from "path";
 
 export class TarUtil {
   public static ebcdicToAsciiArray(input: Buffer): number[] {
@@ -24,7 +25,7 @@ export class TarUtil {
         const fileMetadata: vscode.FileStat =
           this.getFileMetadataFromHeader(header);
         if (header.type === "file") {
-          getDirectories(header.name).forEach((x) => directories.add(x + "/"));
+          getDirectories(header.name).forEach((x) => directories.add(x));
           emitter.fire([
             { type: vscode.FileChangeType.Created, uri: virtualPath },
           ]);
@@ -171,19 +172,19 @@ export type TarContent = {
     fileMetadata: vscode.FileStat;
   };
 };
-export function splitTarfilePath(tarfilePath: string) {
-  const str = tarfilePath.split(`/${SEPARATOR}/`);
+export function splitTarfileUri(tarfileUri: vscode.Uri) {
+  const str = tarfileUri.path.split(`${sep}${SEPARATOR}${sep}`);
   return {
     tarfilePath: str[0],
-    directory: str[1] == undefined ? "/" : str[1],
+    directory: str[1] == undefined ? sep : str[1],
   };
 }
 
 function getDirectories(filePath: string): string[] {
-  const parts = filePath.split("/");
+  const parts = filePath.split(sep);
   const dirs: string[] = [];
   for (let i = 1; i < parts.length; i++) {
-    dirs.push(parts.slice(0, i).join("/"));
+    dirs.push(parts.slice(0, i).join(sep));
   }
   return dirs;
 }

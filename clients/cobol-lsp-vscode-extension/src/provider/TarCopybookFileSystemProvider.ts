@@ -1,10 +1,6 @@
 import * as vscode from "vscode";
 import { Memoize } from "../services/util/Memoize";
-import {
-  splitTarfilePath,
-  TarContent,
-  TarUtil,
-} from "../services/util/TarUtil";
+import { splitTarfileUri, TarContent, TarUtil } from "../services/util/TarUtil";
 
 const reg = /tar:(.*?)\$\$/;
 export const SEPARATOR = ":";
@@ -46,9 +42,8 @@ export class TarCopybookFileSystemProvider
    * @returns
    */
   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
-    const { tarfilePath: tarfilePath, directory: directory } = splitTarfilePath(
-      uri.fsPath,
-    );
+    const { tarfilePath: tarfilePath, directory: directory } =
+      splitTarfileUri(uri);
     const matchingFiles = await this.fetchMatchingFiles(
       tarfilePath,
       uri,
@@ -66,9 +61,8 @@ export class TarCopybookFileSystemProvider
    * @param uri
    */
   async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
-    const { tarfilePath: tarfilePath, directory: directory } = splitTarfilePath(
-      uri.fsPath,
-    );
+    const { tarfilePath: tarfilePath, directory: directory } =
+      splitTarfileUri(uri);
     const tarfileUri = vscode.Uri.file(tarfilePath);
     const tarContent = await this.tarCache.execute(tarfileUri);
     if (!tarContent) {
@@ -94,12 +88,11 @@ export class TarCopybookFileSystemProvider
    * @returns
    */
   async readFile(uri: vscode.Uri) {
-    const { tarfilePath: tarfileUri, directory: directory } = splitTarfilePath(
-      uri.fsPath,
-    );
+    const { tarfilePath: tarfilePath, directory: directory } =
+      splitTarfileUri(uri);
 
     const matchingFiles = await this.fetchMatchingFiles(
-      tarfileUri,
+      tarfilePath,
       uri,
       directory,
     );
@@ -113,7 +106,7 @@ export class TarCopybookFileSystemProvider
       // return the first found file
       return matchingFiles[0].fileData.fileContent;
     }
-    console.log(`file ${directory} not found in tar ${tarfileUri}`);
+    console.log(`file ${directory} not found in tar ${tarfilePath}`);
     throw vscode.FileSystemError.FileNotFound();
   }
 

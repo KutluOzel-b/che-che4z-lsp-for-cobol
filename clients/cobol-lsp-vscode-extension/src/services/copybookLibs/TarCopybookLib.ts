@@ -11,7 +11,7 @@ import {
 import { SettingsService } from "../Settings";
 import { getVariablesFromUri } from "../util/FSUtils";
 import { Minimatch } from "minimatch";
-import { splitTarfilePath } from "../util/TarUtil";
+import { splitTarfileUri } from "../util/TarUtil";
 import { outputChannel } from "../util/OutputChannel";
 
 export class TarCopybookLib implements CopybookLib {
@@ -141,7 +141,7 @@ export class TarCopybookLib implements CopybookLib {
 
     const allFiles = await this.readAllSubtree(directory);
     const matchingFiles = allFiles.filter((e) => {
-      const { directory: directory } = splitTarfilePath(e.fsPath);
+      const { directory: directory } = splitTarfileUri(e);
       return this.matcher.match(directory);
     });
     return matchingFiles.map((x) => this.getFilenameFromPath(x.fsPath));
@@ -186,7 +186,7 @@ export class TarCopybookLib implements CopybookLib {
     const allFiles = await this.readAllSubtree(directory);
 
     const matchingFiles = allFiles.filter((e) => {
-      const { directory: directory } = splitTarfilePath(e.fsPath);
+      const { directory: directory } = splitTarfileUri(e);
       return this.matcher.match(directory);
     });
     const allowedExtensions = await SettingsService.getCopybookExtension(
