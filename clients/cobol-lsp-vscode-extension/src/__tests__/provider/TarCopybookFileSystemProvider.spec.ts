@@ -17,8 +17,11 @@ describe("TarCopybookFileSystemProvider", () => {
     });
 
   const provider = new TarCopybookFileSystemProvider();
+  const root = process.cwd();
   const testFileUri = vscode.Uri.joinPath(
-    vscode.Uri.joinPath(vscode.Uri.parse(__dirname), ".."),
+    vscode.Uri.parse(root),
+    "src",
+    "__tests__",
     "resources",
     "tar",
     "output.cobol-ls-tar",
