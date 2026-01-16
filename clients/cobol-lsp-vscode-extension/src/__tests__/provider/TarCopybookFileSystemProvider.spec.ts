@@ -20,7 +20,6 @@ describe("TarCopybookFileSystemProvider", () => {
   const root = vscode.Uri.joinPath(vscode.Uri.parse(__dirname), "../../");
   const testFileUri = vscode.Uri.joinPath(
     root,
-    "src",
     "__tests__",
     "resources",
     "tar",
