@@ -17,9 +17,9 @@ describe("TarCopybookFileSystemProvider", () => {
     });
 
   const provider = new TarCopybookFileSystemProvider();
-  const root = process.cwd();
+  const root = vscode.Uri.joinPath(vscode.Uri.parse(__dirname), "../../");
   const testFileUri = vscode.Uri.joinPath(
-    vscode.Uri.parse(root),
+    root,
     "src",
     "__tests__",
     "resources",
