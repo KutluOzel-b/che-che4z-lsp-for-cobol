@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import { Memoize } from "../services/util/Memoize";
 import { splitTarfileUri, TarContent, TarUtil } from "../services/util/TarUtil";
-import { sep } from "path";
+import * as path from "path";
 
 const reg = /tar:(.*?)\$\$/;
-export const SEPARATOR = ":";
+export const SEPARATOR = "::";
 export class TarCopybookFileSystemProvider
   implements vscode.FileSystemProvider
 {
@@ -173,23 +173,32 @@ export class TarCopybookFileSystemProvider
     content: TarContent[],
     input: string,
   ): TarContent[] {
-    const base = input.replace(/^\/|\/$/g, "");
-    const baseDepth = base === "" ? 0 : base.split(sep).length;
+    const parent = path.normalize(input);
     const result: TarContent[] = [];
 
     for (const p of content) {
-      const cleanPath = p.fileName.replace(/^\/|\/$/g, "");
+      const fullPath = path.normalize(p.fileName);
 
-      if (!cleanPath.startsWith(base)) continue;
+      const relative = path.relative(parent, fullPath);
 
-      const parts = cleanPath.split(sep);
+      if (
+        relative === "" ||
+        relative.startsWith("..") ||
+        path.isAbsolute(relative)
+      ) {
+        continue;
+      }
 
-      if (parts.length <= baseDepth) continue;
+      const parts = relative.split(path.sep);
 
-      if (parts.length === baseDepth + 1) {
-        result.push({ fileName: parts[baseDepth], fileData: p.fileData });
+      if (parts.length === 1) {
+        result.push({
+          fileName: parts[0],
+          fileData: p.fileData,
+        });
       }
     }
+
     return result;
   }
 }

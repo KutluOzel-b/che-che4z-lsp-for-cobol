@@ -23,7 +23,7 @@ export class TarCopybookLib implements CopybookLib {
     private searchPattern: string,
     private profile?: string,
   ) {
-    this.matcher = new Minimatch(this.searchPattern, {
+    this.matcher = new Minimatch(vscode.Uri.file(this.searchPattern).path, {
       nocase: true,
       dot: true,
     });
@@ -225,8 +225,12 @@ export class TarCopybookLib implements CopybookLib {
 
     for (const [name, type] of entries) {
       if (!uri.fsPath.includes(SEPARATOR))
-        uri = vscode.Uri.joinPath(uri, SEPARATOR);
-      const fullPath = vscode.Uri.joinPath(uri, name);
+        uri = vscode.Uri.file(vscode.Uri.joinPath(uri, SEPARATOR).path);
+
+      const fullPath = vscode.Uri.from({
+        path: vscode.Uri.joinPath(uri, name).path,
+        scheme: TarCopybookFileSystemProvider.SCHEME,
+      });
 
       if (type === vscode.FileType.File) {
         files.push(fullPath);

@@ -43,7 +43,7 @@ describe("TarCopybookFileSystemProvider", () => {
       const uri = vscode.Uri.from({
         path: vscode.Uri.joinPath(
           testFileUri,
-          ":",
+          "::",
           "APPLDICT/EMPRPT/RECORD/EMPOSITION.CPY",
         ).fsPath,
         scheme: testFileUri.scheme,
@@ -66,7 +66,7 @@ describe("TarCopybookFileSystemProvider", () => {
   describe("readDirectory", () => {
     test("should return list of files for a search path", async () => {
       const uri = vscode.Uri.from({
-        path: vscode.Uri.joinPath(testFileUri, ":", "APPLDICT/EMPRPT").fsPath,
+        path: vscode.Uri.joinPath(testFileUri, "::", "APPLDICT/EMPRPT").fsPath,
         scheme: testFileUri.scheme,
       });
       const entries = await provider.readDirectory(uri);
@@ -84,7 +84,7 @@ describe("TarCopybookFileSystemProvider", () => {
 
     test("should throw FileNotFound for reading a non-existent directory", async () => {
       const uri = vscode.Uri.from({
-        path: vscode.Uri.joinPath(testFileUri, ":", "NON_EXISTENT_DIR/EMPRPT")
+        path: vscode.Uri.joinPath(testFileUri, "::", "NON_EXISTENT_DIR/EMPRPT")
           .fsPath,
         scheme: testFileUri.scheme,
       });
@@ -99,7 +99,7 @@ describe("TarCopybookFileSystemProvider", () => {
     test("should return file content as Uint8Array for an existing file", async () => {
       const uri = vscode.Uri.joinPath(
         testFileUri,
-        ":",
+        "::",
         "APPLDICT/EMPRPT/RECORD/JOB.CPY",
       );
       const content = await provider.readFile(uri);

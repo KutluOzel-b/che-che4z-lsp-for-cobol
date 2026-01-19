@@ -45,7 +45,7 @@ describe("Tar copybook lib tests", () => {
       const expectedValue = vscode.Uri.from({
         scheme: "cobol-ls-tar",
         authority: "",
-        path: "/storage/tar/path/for/tar/:/APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY",
+        path: "/storage/tar/path/for/tar/::/APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY",
       });
       expect(result instanceof vscode.Uri).toBeTruthy();
       expect((result as vscode.Uri).fsPath).toBe(expectedValue.fsPath);
