@@ -15,6 +15,7 @@
 import * as vscode from "vscode";
 import { ResolvedProfile } from "../../type/e4eApi";
 import { TAR_PREFIX } from "../../constants";
+import { SEPARATOR } from "../../provider/TarCopybookFileSystemProvider";
 
 async function safeActivate(ext: vscode.Extension<unknown>) {
   try {
@@ -152,8 +153,6 @@ export function extractTarPath(input: string): {
   tarPath: string;
   internalPath: string;
 } {
-  const separator = "!";
-
   // 1. Find the start index for the file path (after 'tar:')
   const tarPrefixIndex = input.indexOf(TAR_PREFIX);
   if (tarPrefixIndex != 0) {
@@ -162,16 +161,16 @@ export function extractTarPath(input: string): {
   const filePathStartIndex = tarPrefixIndex + TAR_PREFIX.length;
 
   // 2. Find the index of the separator '!'
-  const separatorIndex = input.indexOf(separator, filePathStartIndex);
+  const separatorIndex = input.indexOf(SEPARATOR, filePathStartIndex);
   if (separatorIndex === -1) {
-    throw new Error("Separator '!' not found after 'tar:'.");
+    throw new Error("Separator '::' not found after 'tar:'.");
   }
 
-  // 3. Extract the text between 'tar:' and '!' (the file path)
+  // 3. Extract the text between 'tar:' and '::' (the file path)
   const tarPath = input.substring(filePathStartIndex, separatorIndex);
 
-  // 4. Extract the text after '!' (the internal path)
-  const internalPath = input.substring(separatorIndex + separator.length);
+  // 4. Extract the text after '::' (the internal path)
+  const internalPath = input.substring(separatorIndex + SEPARATOR.length);
 
   return { tarPath: tarPath, internalPath };
 }
