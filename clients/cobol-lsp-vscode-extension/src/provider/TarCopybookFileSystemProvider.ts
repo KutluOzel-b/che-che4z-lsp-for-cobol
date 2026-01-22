@@ -1,6 +1,10 @@
 import * as vscode from "vscode";
 import { Memoize } from "../services/util/Memoize";
-import { splitTarfileUri, TarContent, TarUtil } from "../services/util/TarUtil";
+import {
+  splitTarfileUri,
+  TarContent,
+  readTarFile,
+} from "../services/util/TarUtil";
 import * as path from "path";
 
 const reg = /tar:(.*?)\$\$/;
@@ -12,7 +16,7 @@ export class TarCopybookFileSystemProvider
   public static readonly SCHEME = "cobol-ls-tar";
   public tarCache = new Memoize(
     async (tarFileUri: vscode.Uri) => {
-      return await TarUtil.readTarFile(tarFileUri, this.emitter);
+      return await readTarFile(tarFileUri, this.emitter);
     },
     undefined,
     (tarFileUri: vscode.Uri) => {

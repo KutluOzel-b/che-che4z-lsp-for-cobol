@@ -1,164 +1,69 @@
 import * as vscode from "vscode";
 import * as tar from "tar-stream";
-import { Readable } from "stream";
+import { Readable, Stream } from "stream";
 import { SEPARATOR } from "../../provider/TarCopybookFileSystemProvider";
 import { sep } from "path";
-export class TarUtil {
-  public static ebcdicToAsciiArray(input: Buffer): number[] {
-    return [...input].map((it) => this.EBCDIC_TO_ASCII[it]);
-  }
 
-  public static async readTarFile(
-    tarFilePath: vscode.Uri,
-    emitter: vscode.EventEmitter<vscode.FileChangeEvent[]>,
-  ) {
-    const directories: Set<string> = new Set<string>();
+export type refBool = { value: boolean | undefined };
+
+export async function readTarFile(
+  tarFileUri: vscode.Uri,
+  emitter: vscode.EventEmitter<vscode.FileChangeEvent[]>,
+) {
+  return new Promise<TarContent[]>((resolve, reject) => {
     const result: TarContent[] = [];
-    return new Promise<TarContent[]>((resolve, reject) => {
-      const links: { name: string; linkname: string }[] = [];
-      let isEbcidic: boolean | undefined;
-      const extract = tar.extract();
-      extract.on("entry", (header, stream, next) => {
-        const fileName = vscode.Uri.file(header.name).path;
-        const virtualPath = vscode.Uri.joinPath(
-          tarFilePath,
-          SEPARATOR,
-          fileName,
+    const links: { name: string; linkname: string }[] = [];
+    const extract = tar.extract();
+    const ebcdicRef: refBool = { value: undefined };
+
+    extract.on("entry", (header, stream, next) => {
+      if (header.type === "file") {
+        handleFile(
+          result,
+          stream,
+          header,
+          emitter,
+          ebcdicRef,
+          tarFileUri,
+          next,
         );
-        const fileMetadata: vscode.FileStat =
-          this.getFileMetadataFromHeader(header);
-        if (header.type === "file") {
-          getDirectories(header.name).forEach((x) => directories.add(x));
-          emitter.fire([
-            { type: vscode.FileChangeType.Created, uri: virtualPath },
-          ]);
-          stream.on("data", (chunk: Buffer) => {
-            // autodetection by counting the number of 0x40 and 0x20
-            // if you have more 0x40 it is EBCDIC and if the latter is ASCII
-            if (isEbcidic === undefined) {
-              isEbcidic =
-                chunk.reduce((acc, e) => acc + (e === 64 ? 1 : 0), 0) >
-                chunk.reduce((acc, e) => acc + (e === 32 ? 1 : 0), 0);
-            }
-            let fileBuffer;
-            if (isEbcidic) {
-              fileBuffer = this.ebcdicToAsciiArray(chunk);
-            } else {
-              fileBuffer = chunk;
-            }
-            const fileContent = new Uint8Array(fileBuffer);
-            result.push({
-              fileName,
-              fileData: { fileContent, fileMetadata },
-            });
-            directories.forEach((x) => {
-              if (!result.find((res) => res.fileName == x)) {
-                const newContent: TarContent = {
-                  fileName: x,
-                  fileData: {
-                    fileContent: undefined,
-                    fileMetadata: {
-                      ctime: fileMetadata.ctime,
-                      mtime: fileMetadata.mtime,
-                      type: vscode.FileType.Directory,
-                      size: 0,
-                    },
-                  },
-                };
-                result.push(newContent);
-                emitter.fire([
-                  {
-                    type: vscode.FileChangeType.Created,
-                    uri: vscode.Uri.joinPath(tarFilePath, newContent.fileName),
-                  },
-                ]);
-              }
-            });
-          });
-
-          stream.on("end", () => {
-            next();
-          });
-
-          stream.on("error", (err) => {
-            console.error(`tar stream error for ${header.name}:`, err);
-            next(err);
-          });
-        } else if (header.type === "directory") {
-          if (!result.find((res) => res.fileName == fileName)) {
-            const directory = vscode.Uri.file(fileName).path;
-            result.push({
-              fileName: directory,
-              fileData: { fileContent: undefined, fileMetadata },
-            });
-          }
-          emitter.fire([
-            { type: vscode.FileChangeType.Created, uri: virtualPath },
-          ]);
-          next();
-        } else if (header.type == "symlink" || header.type == "link") {
-          if (header.linkname)
-            links.push({ linkname: header.linkname, name: header.name });
-          next();
-        } else {
-          next();
-        }
-      });
-
-      extract.on("finish", () => {
-        links.forEach((link) => {
-          const match = result.find(
-            (x) =>
-              link.linkname.includes(x.fileName) &&
-              x.fileData.fileMetadata.type != vscode.FileType.Directory,
-          );
-          if (match) {
-            match.fileName = vscode.Uri.file(link.name).path;
-            result.push(match);
-          }
-        });
-        console.log("---reading archive complete ---");
-        resolve(result);
-      });
-
-      extract.on("error", (err: Error) => {
-        reject(err);
-        console.log("---error on reading archive ---");
-      });
-
-      vscode.workspace.fs.readFile(tarFilePath).then(
-        (arr) => {
-          const bufferStream = new Readable();
-          bufferStream.push(Buffer.from(arr));
-          bufferStream.push(null);
-          bufferStream.pipe(extract);
-        },
-        (rej: Error) => {
-          reject(rej);
-          throw rej;
-        },
-      );
+      } else if (header.type === "directory") {
+        handleDirectory(result, header, emitter, tarFileUri, next);
+      } else if (header.type == "symlink" || header.type == "link") {
+        handleLink(links, header, next);
+      } else {
+        next();
+      }
     });
-  }
-  static getFileMetadataFromHeader(header: tar.Headers) {
-    return {
-      mtime: header.mtime?.getTime() || 0,
-      ctime: 0,
-      size: header.size || 0,
-      name: header.name,
-      type: this.getFileTypeFromtarHeader(header.type),
-    };
-  }
-  static getFileTypeFromtarHeader(type: string | null | undefined) {
-    if (type === "file") return vscode.FileType.File;
-    if (type === "directory") return vscode.FileType.Directory;
-    if (type === "link" || type === "symlink")
-      return vscode.FileType.SymbolicLink;
-    return vscode.FileType.Unknown;
-  }
 
-  // prettier-ignore
-  public static EBCDIC_TO_ASCII = [
+    extract.on("finish", () => {
+      linksToActuals(result, links);
+      console.log("---reading archive complete ---");
+      resolve(result);
+    });
+
+    extract.on("error", (err: Error) => {
+      reject(err);
+      console.log("---error on reading archive ---");
+    });
+
+    vscode.workspace.fs.readFile(tarFileUri).then(
+      (arr) => {
+        const bufferStream = new Readable();
+        bufferStream.push(Buffer.from(arr));
+        bufferStream.push(null);
+        bufferStream.pipe(extract);
+      },
+      (rej: Error) => {
+        reject(rej);
+        throw rej;
+      },
+    );
+  });
+}
+
+// prettier-ignore
+export const EBCDIC_TO_ASCII = [
   //         0x_0  0x_1  0x_2  0x_3  0x_4  0x_5  0x_6  0x_7  0x_8  0x_9  0x_a  0x_b  0x_c  0x_d  0x_e  0x_f
   /* 0x0_ */ 0x00, 0x01, 0x02, 0x03, 0x3f, 0x09, 0x3f, 0x7f, 0x3f, 0x3f, 0x3f, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 
   /* 0x1_ */ 0x10, 0x11, 0x12, 0x13, 0x3f, 0x0a, 0x08, 0x3f, 0x18, 0x19, 0x3f, 0x3f, 0x1c, 0x1d, 0x1e, 0x1f, 
@@ -177,7 +82,7 @@ export class TarUtil {
   /* 0xe_ */ 0x5c, 0x3f, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 
   /* 0xf_ */ 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
 ];
-}
+
 export type TarContent = {
   fileName: string;
   fileData: {
@@ -192,12 +97,157 @@ export function splitTarfileUri(tarfileUri: vscode.Uri) {
     directory: str[1] == undefined ? sep : str[1],
   };
 }
-
-function getDirectories(filePath: string): string[] {
+export function getDirectories(filePath: string): string[] {
   const parts = filePath.split("/");
   const dirs: string[] = [];
   for (let i = 1; i < parts.length; i++) {
     dirs.push(vscode.Uri.file(parts.slice(0, i).join("/")).path.concat("/"));
   }
   return dirs;
+}
+export function getFilePaths(header: tar.Headers, tarfileUri: vscode.Uri) {
+  const fileName = vscode.Uri.file(header.name).path;
+  const virtualPath = vscode.Uri.joinPath(tarfileUri, SEPARATOR, fileName);
+  return { fileName, virtualPath };
+}
+export function fireEvent(
+  emitter: vscode.EventEmitter<vscode.FileChangeEvent[]>,
+  type: vscode.FileChangeType,
+  uri: vscode.Uri,
+) {
+  emitter.fire([{ type, uri }]);
+}
+// autodetection by counting the number of 0x40 and 0x20
+// if you have more 0x40 it is EBCDIC and if the latter is ASCII
+export function isEbcdic(chunk: Buffer) {
+  return (
+    chunk.reduce((acc, e) => acc + (e === 64 ? 1 : 0), 0) >
+    chunk.reduce((acc, e) => acc + (e === 32 ? 1 : 0), 0)
+  );
+}
+export function getFileMetadataFromHeader(header: tar.Headers) {
+  return {
+    mtime: header.mtime?.getTime() || 0,
+    ctime: 0,
+    size: header.size || 0,
+    name: header.name,
+    type: getFileTypeFromtarHeader(header.type),
+  };
+}
+export function getFileTypeFromtarHeader(type: string | null | undefined) {
+  if (type === "file") return vscode.FileType.File;
+  if (type === "directory") return vscode.FileType.Directory;
+  if (type === "link" || type === "symlink")
+    return vscode.FileType.SymbolicLink;
+  return vscode.FileType.Unknown;
+}
+export function ebcdicToAsciiArray(input: Buffer): number[] {
+  return [...input].map((it) => EBCDIC_TO_ASCII[it]);
+}
+function handleFile(
+  result: TarContent[],
+  stream: Stream.PassThrough,
+  header: tar.Headers,
+  emitter: vscode.EventEmitter<vscode.FileChangeEvent[]>,
+  ebcdicRef: refBool,
+  tarFileUri: vscode.Uri,
+  next: (error?: unknown) => void,
+) {
+  const { fileName, virtualPath } = getFilePaths(header, tarFileUri);
+  const fileMetadata: vscode.FileStat = getFileMetadataFromHeader(header);
+  const directories: Set<string> = new Set<string>();
+
+  getDirectories(header.name).forEach((x) => directories.add(x));
+  fireEvent(emitter, vscode.FileChangeType.Created, virtualPath);
+  stream.on("data", (chunk: Buffer) => {
+    if (ebcdicRef.value === undefined) {
+      ebcdicRef.value = isEbcdic(chunk);
+    }
+    let fileBuffer;
+    if (ebcdicRef.value) {
+      fileBuffer = ebcdicToAsciiArray(chunk);
+    } else {
+      fileBuffer = chunk;
+    }
+    const fileContent = new Uint8Array(fileBuffer);
+    result.push({
+      fileName,
+      fileData: { fileContent, fileMetadata },
+    });
+    directories.forEach((x) => {
+      if (!result.find((res) => res.fileName == x)) {
+        const newContent: TarContent = {
+          fileName: x,
+          fileData: {
+            fileContent: undefined,
+            fileMetadata: {
+              ctime: fileMetadata.ctime,
+              mtime: fileMetadata.mtime,
+              type: vscode.FileType.Directory,
+              size: 0,
+            },
+          },
+        };
+        result.push(newContent);
+        fireEvent(
+          emitter,
+          vscode.FileChangeType.Created,
+          vscode.Uri.joinPath(tarFileUri, newContent.fileName),
+        );
+      }
+    });
+  });
+
+  stream.on("end", () => {
+    next();
+  });
+
+  stream.on("error", (err) => {
+    console.error(`tar stream error for ${header.name}:`, err);
+    next(err);
+  });
+}
+function handleDirectory(
+  result: TarContent[],
+  header: tar.Headers,
+  emitter: vscode.EventEmitter<vscode.FileChangeEvent[]>,
+  tarFileUri: vscode.Uri,
+  next: (error?: unknown) => void,
+) {
+  const { fileName, virtualPath } = getFilePaths(header, tarFileUri);
+  const fileMetadata: vscode.FileStat = getFileMetadataFromHeader(header);
+  if (!result.find((res) => res.fileName == fileName)) {
+    const directory = vscode.Uri.file(fileName).path;
+    result.push({
+      fileName: directory,
+      fileData: { fileContent: undefined, fileMetadata },
+    });
+  }
+  fireEvent(emitter, vscode.FileChangeType.Created, virtualPath);
+  next();
+}
+function handleLink(
+  links: { name: string; linkname: string }[],
+  header: tar.Headers,
+  next: (error?: unknown) => void,
+) {
+  if (header.linkname)
+    links.push({ linkname: header.linkname, name: header.name });
+  next();
+}
+function linksToActuals(
+  result: TarContent[],
+  links: { name: string; linkname: string }[],
+) {
+  links.forEach((link) => {
+    const match = result.find(
+      (x) =>
+        link.linkname.includes(x.fileName) &&
+        x.fileData.fileMetadata.type != vscode.FileType.Directory,
+    );
+    if (match) {
+      match.fileName = vscode.Uri.file(link.name).path;
+      result.push(match);
+    }
+  });
 }

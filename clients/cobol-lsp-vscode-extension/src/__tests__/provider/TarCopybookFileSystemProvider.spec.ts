@@ -1,6 +1,6 @@
 import { TarCopybookFileSystemProvider } from "../../provider/TarCopybookFileSystemProvider";
 import * as vscode from "vscode";
-import { TarUtil } from "../../services/util/TarUtil";
+import { readTarFile } from "../../services/util/TarUtil";
 import * as nodeFs from "fs/promises";
 
 describe("TarCopybookFileSystemProvider", () => {
@@ -32,7 +32,7 @@ describe("TarCopybookFileSystemProvider", () => {
     event: jest.fn().mockResolvedValue({}),
     fire: jest.fn().mockResolvedValue({}),
   };
-  const tarContent = TarUtil.readTarFile(testFileUri, emitter_mock);
+  const tarContent = readTarFile(testFileUri, emitter_mock);
   beforeEach(async () => {
     const resolved = await tarContent;
     provider.tarCache.execute = jest.fn().mockResolvedValue(resolved);
