@@ -12,7 +12,6 @@ import { SettingsService } from "../Settings";
 import { getVariablesFromUri } from "../util/FSUtils";
 import { Minimatch } from "minimatch";
 import { splitTarfileUri } from "../util/TarUtil";
-import { outputChannel } from "../util/OutputChannel";
 import { sep } from "path";
 
 export class TarCopybookLib implements CopybookLib {
@@ -47,15 +46,6 @@ export class TarCopybookLib implements CopybookLib {
       );
       tarFileUri = local ? local[0] : undefined;
       if (!tarFileUri) return;
-
-      try {
-        await vscode.workspace.fs.stat(tarFileUri);
-      } catch (_error) {
-        outputChannel.appendLine(
-          `Error on retrieving tar file ': ${tarFileUri.fsPath}' stats while trying to resolve copybook: '${copybookName}'`,
-        );
-        return;
-      }
     } else {
       const effectiveExternalApi =
         this.locationType === "DSN"
@@ -107,14 +97,6 @@ export class TarCopybookLib implements CopybookLib {
       );
       tarFileUri = local ? local[0] : undefined;
       if (!tarFileUri) return [];
-      try {
-        await vscode.workspace.fs.stat(tarFileUri);
-      } catch (_error) {
-        outputChannel.appendLine(
-          `Error on retrieving tar file stats while listing copybooks: '${tarFileUri.fsPath}'`,
-        );
-        return [];
-      }
     } else {
       const effectiveExternalApi =
         this.locationType === "DSN"

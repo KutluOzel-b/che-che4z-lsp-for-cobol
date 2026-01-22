@@ -3,8 +3,6 @@ import * as tar from "tar-stream";
 import { Readable } from "stream";
 import { SEPARATOR } from "../../provider/TarCopybookFileSystemProvider";
 import { sep } from "path";
-const IGNORE_REGEX =
-  /(?:^|[\\/])(?:\._[^\\/]+|\.DS_Store|Thumbs\.db|Desktop\.ini|\.directory)(?:$|[\\/])/;
 export class TarUtil {
   public static ebcdicToAsciiArray(input: Buffer): number[] {
     return [...input].map((it) => this.EBCDIC_TO_ASCII[it]);
@@ -39,8 +37,8 @@ export class TarUtil {
             // if you have more 0x40 it is EBCDIC and if the latter is ASCII
             if (isEbcidic === undefined) {
               isEbcidic =
-                chunk.filter((e) => e === 64).length >
-                chunk.filter((e) => e === 32).length;
+                chunk.reduce((acc, e) => acc + (e === 64 ? 1 : 0), 0) >
+                chunk.reduce((acc, e) => acc + (e === 32 ? 1 : 0), 0);
             }
             let fileBuffer;
             if (isEbcidic) {
@@ -49,11 +47,10 @@ export class TarUtil {
               fileBuffer = chunk;
             }
             const fileContent = new Uint8Array(fileBuffer);
-            if (!ignoreEntry(fileName))
-              result.push({
-                fileName,
-                fileData: { fileContent, fileMetadata },
-              });
+            result.push({
+              fileName,
+              fileData: { fileContent, fileMetadata },
+            });
             directories.forEach((x) => {
               if (!result.find((res) => res.fileName == x)) {
                 const newContent: TarContent = {
@@ -68,7 +65,7 @@ export class TarUtil {
                     },
                   },
                 };
-                if (!ignoreEntry(x)) result.push(newContent);
+                result.push(newContent);
                 emitter.fire([
                   {
                     type: vscode.FileChangeType.Created,
@@ -90,11 +87,10 @@ export class TarUtil {
         } else if (header.type === "directory") {
           if (!result.find((res) => res.fileName == fileName)) {
             const directory = vscode.Uri.file(fileName).path;
-            if (!ignoreEntry(directory))
-              result.push({
-                fileName: directory,
-                fileData: { fileContent: undefined, fileMetadata },
-              });
+            result.push({
+              fileName: directory,
+              fileData: { fileContent: undefined, fileMetadata },
+            });
           }
           emitter.fire([
             { type: vscode.FileChangeType.Created, uri: virtualPath },
@@ -118,7 +114,7 @@ export class TarUtil {
           );
           if (match) {
             match.fileName = vscode.Uri.file(link.name).path;
-            if (!ignoreEntry(match.fileName)) result.push(match);
+            result.push(match);
           }
         });
         console.log("---reading archive complete ---");
@@ -130,12 +126,18 @@ export class TarUtil {
         console.log("---error on reading archive ---");
       });
 
-      vscode.workspace.fs.readFile(tarFilePath).then((arr) => {
-        const bufferStream = new Readable();
-        bufferStream.push(Buffer.from(arr));
-        bufferStream.push(null);
-        bufferStream.pipe(extract);
-      });
+      vscode.workspace.fs.readFile(tarFilePath).then(
+        (arr) => {
+          const bufferStream = new Readable();
+          bufferStream.push(Buffer.from(arr));
+          bufferStream.push(null);
+          bufferStream.pipe(extract);
+        },
+        (rej: Error) => {
+          reject(rej);
+          throw rej;
+        },
+      );
     });
   }
   static getFileMetadataFromHeader(header: tar.Headers) {
@@ -198,8 +200,4 @@ function getDirectories(filePath: string): string[] {
     dirs.push(vscode.Uri.file(parts.slice(0, i).join("/")).path.concat("/"));
   }
   return dirs;
-}
-
-function ignoreEntry(name: string): boolean {
-  return IGNORE_REGEX.test(name);
 }
