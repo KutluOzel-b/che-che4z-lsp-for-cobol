@@ -8,6 +8,21 @@ import { DEFAULT_DIALECT } from "../../../../constants";
 import { CopybookDownloaderForDsn } from "../../../../services/copybook/downloader/CopybookDownloaderForDsn";
 import { createZoweExplorerMock } from "../../../../__mocks__/getZoweExplorerMock.utility";
 import { SettingsService } from "../../../../services/Settings";
+import { getTarCached } from "../../../../services/util/TarUtil";
+
+const emitter_mock: vscode.EventEmitter<vscode.FileChangeEvent[]> = {
+  dispose: jest.fn().mockResolvedValue({}),
+  event: jest.fn().mockResolvedValue({}),
+  fire: jest.fn().mockResolvedValue({}),
+};
+const tarCache = getTarCached(emitter_mock);
+beforeAll(async () => {
+  await initializeExternalAPIs(
+    vscode.Uri.file("/storage"),
+    undefined,
+    tarCache,
+  );
+});
 
 describe("Tar copybook lib tests", () => {
   let extApis: ExternalAPIsService;
@@ -25,6 +40,7 @@ describe("Tar copybook lib tests", () => {
       "DSN",
       "path/for/tar",
       "APPLDICT/EMPRPT/**",
+      tarCache,
       "zeProfile",
     );
     it("copybook exists in tar", async () => {
@@ -73,6 +89,7 @@ describe("Tar copybook lib tests", () => {
         "local",
         "path/for/tar",
         "APPLDICT/EMPRPT/**",
+        tarCache,
         "zeProfile",
       );
       expect(
@@ -95,6 +112,7 @@ describe("Tar copybook lib tests", () => {
         "DSN",
         "path/for/tar",
         "APPLDICT/EMPRPT/**",
+        tarCache,
         "zeProfile",
       );
       await dsnTarLib.resolveCopybookUri(
@@ -102,7 +120,7 @@ describe("Tar copybook lib tests", () => {
         vscode.Uri.file("/program.cbl"),
         DEFAULT_DIALECT,
       );
-      expect(extApis.dsnService.downloadFile).toHaveBeenCalledWith(
+      expect(dsnTarLib.listCopybooks).toHaveBeenCalledWith(
         "path/for/tar",
         "zeProfile",
       );
@@ -123,6 +141,7 @@ describe("Tar copybook lib tests", () => {
         "DSN",
         "path/for/tar",
         "APPLDICT/EMPRPT/**",
+        tarCache,
         "zeProfile",
       );
       const result = await dsnTarLib.listCopybooks(

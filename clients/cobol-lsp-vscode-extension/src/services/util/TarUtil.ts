@@ -3,6 +3,7 @@ import * as tar from "tar-stream";
 import { Readable, Stream } from "stream";
 import { SEPARATOR } from "../../provider/TarCopybookFileSystemProvider";
 import { sep } from "path";
+import { Memoize } from "./Memoize";
 
 export type refBool = { value: boolean | undefined };
 
@@ -143,6 +144,19 @@ export function getFileTypeFromtarHeader(type: string | null | undefined) {
 }
 export function ebcdicToAsciiArray(input: Buffer): number[] {
   return [...input].map((it) => EBCDIC_TO_ASCII[it]);
+}
+export function getTarCached(
+  emitter: vscode.EventEmitter<vscode.FileChangeEvent[]>,
+) {
+  return new Memoize(
+    async (tarFileUri: vscode.Uri) => {
+      return await readTarFile(tarFileUri, emitter);
+    },
+    undefined,
+    (tarFileUri: vscode.Uri) => {
+      return tarFileUri.fsPath;
+    },
+  );
 }
 function handleFile(
   result: TarContent[],

@@ -78,6 +78,7 @@ import { DialectService } from "./dialect/DialectService";
 import { createSampleConfiguration } from "./commands/CreateSampleConfiguration";
 import { RENUM_LEFT, RENUM_RIGHT, RenumHandler } from "./commands/RenumCommand";
 import { TarCopybookFileSystemProvider } from "./provider/TarCopybookFileSystemProvider";
+import { getTarCached } from "./services/util/TarUtil";
 
 interface __AnalysisApi {
   analysis(uri: string, text: string, pos?: vscode.Position): Promise<unknown>;
@@ -106,7 +107,7 @@ export async function activate(
   initSmartTab(context);
 
   let externalApis: ExternalAPIsService | undefined = undefined;
-  const cobolTarFsProvider = new TarCopybookFileSystemProvider();
+  const { cobolTarFsProvider, tarCache } = initTarFsProvider();
   context.subscriptions.push(
     vscode.workspace.registerFileSystemProvider(
       TarCopybookFileSystemProvider.SCHEME,
@@ -129,7 +130,7 @@ export async function activate(
   externalApis = await initializeExternalAPIs(
     context.globalStorageUri,
     languageClientService.invalidateConfiguration,
-    cobolTarFsProvider,
+    tarCache,
   );
 
   const analysisService = new ControlFlowAnalysisService(
@@ -612,4 +613,13 @@ function registerCompletions(context: vscode.ExtensionContext) {
       new SubroutinesCompletionsProvider(),
     ),
   );
+}
+function initTarFsProvider() {
+  const emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+  const tarCache = getTarCached(emitter);
+  const cobolTarFsProvider = new TarCopybookFileSystemProvider(
+    tarCache,
+    emitter,
+  );
+  return { cobolTarFsProvider, tarCache };
 }

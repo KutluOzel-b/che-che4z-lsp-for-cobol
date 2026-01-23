@@ -1,10 +1,6 @@
 import * as vscode from "vscode";
 import { Memoize } from "../services/util/Memoize";
-import {
-  splitTarfileUri,
-  TarContent,
-  readTarFile,
-} from "../services/util/TarUtil";
+import { splitTarfileUri, TarContent } from "../services/util/TarUtil";
 import * as path from "path";
 
 const reg = /tar:(.*?)\$\$/;
@@ -12,17 +8,12 @@ export const SEPARATOR = "::";
 export class TarCopybookFileSystemProvider
   implements vscode.FileSystemProvider
 {
-  private emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+  constructor(
+    private tarCache: Memoize<[tarFileUri: vscode.Uri], TarContent[]>,
+    private emitter: vscode.EventEmitter<vscode.FileChangeEvent[]>,
+  ) {}
+
   public static readonly SCHEME = "cobol-ls-tar";
-  public tarCache = new Memoize(
-    async (tarFileUri: vscode.Uri) => {
-      return await readTarFile(tarFileUri, this.emitter);
-    },
-    undefined,
-    (tarFileUri: vscode.Uri) => {
-      return `${TarCopybookFileSystemProvider.SCHEME}:${tarFileUri.fsPath}`;
-    },
-  );
 
   readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> =
     this.emitter.event;

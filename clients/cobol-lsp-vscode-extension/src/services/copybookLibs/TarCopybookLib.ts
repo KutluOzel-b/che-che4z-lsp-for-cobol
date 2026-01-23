@@ -11,8 +11,9 @@ import {
 import { SettingsService } from "../Settings";
 import { getVariablesFromUri } from "../util/FSUtils";
 import { Minimatch } from "minimatch";
-import { splitTarfileUri } from "../util/TarUtil";
+import { splitTarfileUri, TarContent } from "../util/TarUtil";
 import { sep } from "path";
+import { Memoize } from "../util/Memoize";
 
 export class TarCopybookLib implements CopybookLib {
   private matcher: Minimatch;
@@ -20,6 +21,7 @@ export class TarCopybookLib implements CopybookLib {
     private locationType: "DSN" | "USS" | "local",
     private tarFileLocation: string,
     private searchPattern: string,
+    private tarCache?: Memoize<[tarFileUri: vscode.Uri], TarContent[]>,
     private profile?: string,
   ) {
     this.matcher = new Minimatch(vscode.Uri.file(this.searchPattern).path, {
@@ -58,10 +60,18 @@ export class TarCopybookLib implements CopybookLib {
 
       if (!isAvailableAlready) {
         const profile = this.getProfile(documentUri);
-        await externalApis.dsnService?.downloadFile(
-          this.tarFileLocation,
+        const members = await externalApis.dsnService?.getAllMembers(
           profile,
+          this.tarFileLocation,
         );
+        if (!members || !(members.length > 0)) return;
+        if (
+          !(await externalApis.dsnService?.downloadFile(
+            this.tarFileLocation,
+            profile,
+          ))
+        )
+          return;
       }
       if (!tarFileUri) return;
     }
@@ -145,12 +155,14 @@ export class TarCopybookLib implements CopybookLib {
           config["locationType"],
           config["tarFileLocation"],
           config["searchPattern"],
+          externalApis.tarCache,
           config["profile"],
         );
       return new TarCopybookLib(
         config["locationType"],
         config["tarFileLocation"],
         config["searchPattern"],
+        externalApis.tarCache,
       );
     }
   }
@@ -161,16 +173,11 @@ export class TarCopybookLib implements CopybookLib {
     documentUri: Uri,
     copybookName: string,
   ) {
-    const directory = vscode.Uri.from({
-      scheme: TarCopybookFileSystemProvider.SCHEME,
-      path: tarFileUri.fsPath,
-    });
-
-    const allFiles = await this.readAllSubtree(directory);
+    const allFiles = await this.tarCache?.execute(tarFileUri);
+    if (!allFiles || allFiles.length < 1) return;
 
     const matchingFiles = allFiles.filter((e) => {
-      const { directory: directory } = splitTarfileUri(e);
-      return this.matcher.match(directory);
+      return this.matcher.match(e.fileName);
     });
     const allowedExtensions = await SettingsService.getCopybookExtension(
       documentUri,
@@ -182,13 +189,21 @@ export class TarCopybookLib implements CopybookLib {
         .map((ext) => copybookName.toUpperCase() + ext),
     );
     const matchingFilePath = matchingFiles.find((file) => {
-      const filename = this.getFilenameFromPath(file.fsPath, true);
+      const filename = this.getFilenameFromPath(file.fileName, true);
       if (probableCopybooks.has(filename.toUpperCase())) {
         return true;
       }
       return false;
     });
-    return matchingFilePath;
+    if (!matchingFilePath) return;
+    return vscode.Uri.from({
+      path: vscode.Uri.joinPath(
+        tarFileUri,
+        SEPARATOR,
+        matchingFilePath.fileName,
+      ).path,
+      scheme: TarCopybookFileSystemProvider.SCHEME,
+    });
   }
 
   private getFilenameFromPath(file: string, withExtension: boolean = false) {

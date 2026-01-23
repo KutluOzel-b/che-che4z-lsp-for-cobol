@@ -23,7 +23,8 @@ import { getE4EAPI } from "./copybook/E4ECopybookService";
 import { Utils } from "./util/Utils";
 import { clearProfiles } from "./util/ProfileUtils";
 import { outputChannel } from "./util/OutputChannel";
-import { TarCopybookFileSystemProvider } from "../provider/TarCopybookFileSystemProvider";
+import { TarContent } from "./util/TarUtil";
+import { Memoize } from "./util/Memoize";
 
 export type { ExternalAPIsService };
 
@@ -34,7 +35,7 @@ const diagnosticCollection: vscode.DiagnosticCollection =
 export async function initializeExternalAPIs(
   storagePath: vscode.Uri,
   configurationInvalidation?: () => unknown,
-  cobolTarContentProvider?: TarCopybookFileSystemProvider,
+  cobolTarContentProvider?: Memoize<[tarFileUri: vscode.Uri], TarContent[]>,
 ) {
   const maybeE4E = await getE4EAPI();
   const maybeZowe = await Utils.getZoweExplorerAPI();
@@ -89,18 +90,18 @@ class ExternalAPIsService {
   dsnService?: CopybookDownloaderForDsn;
   ussService?: CopybookDownloaderForUss;
   e4eDownloader?: CopybookDownloaderForE4E;
-  tarProvider?: TarCopybookFileSystemProvider;
+  tarCache?: Memoize<[tarFileUri: vscode.Uri], TarContent[]>;
 
   constructor(
     private storagePath: vscode.Uri,
     explorer?: IApiRegisterClient,
     e4e?: E4E,
     private configurationInvalidation?: () => unknown,
-    cobolTarContentProvider?: TarCopybookFileSystemProvider,
+    tarCache?: Memoize<[tarFileUri: vscode.Uri], TarContent[]>,
   ) {
     if (e4e) this.e4eAppeared(e4e);
     if (explorer) this.explorerAppeared(explorer);
-    if (cobolTarContentProvider) this.tarProvider = cobolTarContentProvider;
+    if (tarCache) this.tarCache = tarCache;
   }
 
   /**
@@ -110,7 +111,7 @@ class ExternalAPIsService {
     this.dsnService?.clearMemberListCache();
     this.ussService?.clearMemberListCache();
     this.e4eDownloader?.clearProfiles();
-    this.tarProvider?.clearCache();
+    this.tarCache?.clearCache();
   }
 
   clearProfiles() {

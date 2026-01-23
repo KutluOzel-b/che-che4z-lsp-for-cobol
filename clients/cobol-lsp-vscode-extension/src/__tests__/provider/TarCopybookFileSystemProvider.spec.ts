@@ -1,6 +1,6 @@
 import { TarCopybookFileSystemProvider } from "../../provider/TarCopybookFileSystemProvider";
 import * as vscode from "vscode";
-import { readTarFile } from "../../services/util/TarUtil";
+import { getTarCached } from "../../services/util/TarUtil";
 import * as nodeFs from "fs/promises";
 
 describe("TarCopybookFileSystemProvider", () => {
@@ -15,8 +15,13 @@ describe("TarCopybookFileSystemProvider", () => {
     .mockImplementation(async (uri: vscode.Uri) => {
       return nodeFs.stat(uri.fsPath);
     });
-
-  const provider = new TarCopybookFileSystemProvider();
+  const emitter_mock: vscode.EventEmitter<vscode.FileChangeEvent[]> = {
+    dispose: jest.fn().mockResolvedValue({}),
+    event: jest.fn().mockResolvedValue({}),
+    fire: jest.fn().mockResolvedValue({}),
+  };
+  const tarCache = getTarCached(emitter_mock);
+  const provider = new TarCopybookFileSystemProvider(tarCache, emitter_mock);
   const root = vscode.Uri.joinPath(vscode.Uri.file(__dirname), "../../");
   const testFileUri = vscode.Uri.joinPath(
     root,
@@ -27,15 +32,8 @@ describe("TarCopybookFileSystemProvider", () => {
     "output.cobol-ls-tar",
   );
 
-  const emitter_mock: vscode.EventEmitter<vscode.FileChangeEvent[]> = {
-    dispose: jest.fn().mockResolvedValue({}),
-    event: jest.fn().mockResolvedValue({}),
-    fire: jest.fn().mockResolvedValue({}),
-  };
-  const tarContent = readTarFile(testFileUri, emitter_mock);
   beforeEach(async () => {
-    const resolved = await tarContent;
-    provider.tarCache.execute = jest.fn().mockResolvedValue(resolved);
+    await tarCache.execute(testFileUri);
   });
 
   describe("stat", () => {
@@ -56,7 +54,10 @@ describe("TarCopybookFileSystemProvider", () => {
     });
 
     test("should return FileStat for a non existing file", async () => {
-      const uri = vscode.Uri.parse("cobol-ls-tar://my/archive.tar/:/SOME.CPY");
+      const uri = vscode.Uri.from({
+        path: vscode.Uri.joinPath(testFileUri, "::", "/RECORD/SOME.CPY").path,
+        scheme: testFileUri.scheme,
+      });
       await expect(provider.stat(uri)).rejects.toThrow(
         vscode.FileSystemError.FileNotFound(uri).message,
       );
@@ -65,11 +66,11 @@ describe("TarCopybookFileSystemProvider", () => {
 
   describe("readDirectory", () => {
     test("should return list of files for a search path", async () => {
-      const uri = vscode.Uri.from({
+      const directory = vscode.Uri.from({
         path: vscode.Uri.joinPath(testFileUri, "::", "APPLDICT/EMPRPT").path,
         scheme: testFileUri.scheme,
       });
-      const entries = await provider.readDirectory(uri);
+      const entries = await provider.readDirectory(directory);
 
       const expectedNames = [
         "SUBSCHEMA-CONTROL.CPY",
@@ -127,9 +128,11 @@ describe("TarCopybookFileSystemProvider", () => {
     });
 
     test("should throw FileNotFound for a non-existent file", async () => {
-      const uri = vscode.Uri.parse(
-        "cobol-ls-tar://my/archive.tar/:/NO/EXISTING/JOB.CPY",
-      );
+      const uri = vscode.Uri.from({
+        path: vscode.Uri.joinPath(testFileUri, "::", "/NO/EXISTING/JOB.CPY")
+          .path,
+        scheme: testFileUri.scheme,
+      });
 
       await expect(provider.readFile(uri)).rejects.toThrow(
         vscode.FileSystemError.FileNotFound(uri).message,
