@@ -11,8 +11,7 @@ import {
 import { SettingsService } from "../Settings";
 import { getVariablesFromUri } from "../util/FSUtils";
 import { Minimatch } from "minimatch";
-import { splitTarfileUri, TarContent } from "../util/TarUtil";
-import { sep } from "path";
+import { TarContent } from "../util/TarUtil";
 import { Memoize } from "../util/Memoize";
 
 export class TarCopybookLib implements CopybookLib {
@@ -127,17 +126,12 @@ export class TarCopybookLib implements CopybookLib {
       );
     }
 
-    const directory = vscode.Uri.from({
-      scheme: TarCopybookFileSystemProvider.SCHEME,
-      path: tarFileUri.fsPath,
-    });
-
-    const allFiles = await this.readAllSubtree(directory);
+    const allFiles = await this.tarCache?.execute(tarFileUri);
+    if (!allFiles || allFiles.length < 1) return [];
     const matchingFiles = allFiles.filter((e) => {
-      const { directory: directory } = splitTarfileUri(e);
-      return this.matcher.match(directory);
+      return this.matcher.match(e.fileName);
     });
-    return matchingFiles.map((x) => this.getFilenameFromPath(x.fsPath));
+    return matchingFiles.map((x) => this.getFilenameFromPath(x.fileName));
   }
 
   protected getProfile(documentUri: vscode.Uri) {
@@ -207,35 +201,11 @@ export class TarCopybookLib implements CopybookLib {
   }
 
   private getFilenameFromPath(file: string, withExtension: boolean = false) {
-    const lastSlashIndex = file.lastIndexOf(sep);
+    const lastSlashIndex = file.lastIndexOf("/");
     const filename =
       lastSlashIndex === -1 ? file : file.substring(lastSlashIndex + 1);
     return withExtension
       ? filename
       : filename.substring(0, filename.indexOf("."));
-  }
-
-  private async readAllSubtree(uri: vscode.Uri): Promise<vscode.Uri[]> {
-    const files: vscode.Uri[] = [];
-
-    const entries = await vscode.workspace.fs.readDirectory(uri);
-
-    for (const [name, type] of entries) {
-      if (!uri.fsPath.includes(SEPARATOR))
-        uri = vscode.Uri.file(vscode.Uri.joinPath(uri, SEPARATOR).path);
-
-      const fullPath = vscode.Uri.from({
-        path: vscode.Uri.joinPath(uri, name).path,
-        scheme: TarCopybookFileSystemProvider.SCHEME,
-      });
-
-      if (type === vscode.FileType.File) {
-        files.push(fullPath);
-      } else if (type === vscode.FileType.Directory) {
-        files.push(...(await this.readAllSubtree(fullPath)));
-      }
-    }
-
-    return files;
   }
 }
