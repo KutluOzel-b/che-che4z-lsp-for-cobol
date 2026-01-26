@@ -44,8 +44,8 @@ export async function readTarFile(
     });
 
     extract.on("error", (err: Error) => {
-      reject(err);
       console.log("---error on reading archive ---");
+      reject(err);
     });
 
     vscode.workspace.fs.readFile(tarFileUri).then(

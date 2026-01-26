@@ -8,7 +8,7 @@ import { DEFAULT_DIALECT } from "../../../../constants";
 import { CopybookDownloaderForDsn } from "../../../../services/copybook/downloader/CopybookDownloaderForDsn";
 import { createZoweExplorerMock } from "../../../../__mocks__/getZoweExplorerMock.utility";
 import { SettingsService } from "../../../../services/Settings";
-import { getTarCached } from "../../../../services/util/TarUtil";
+import { getTarCached, TarContent } from "../../../../services/util/TarUtil";
 
 const emitter_mock: vscode.EventEmitter<vscode.FileChangeEvent[]> = {
   dispose: jest.fn().mockResolvedValue({}),
@@ -16,6 +16,21 @@ const emitter_mock: vscode.EventEmitter<vscode.FileChangeEvent[]> = {
   fire: jest.fn().mockResolvedValue({}),
 };
 const tarCache = getTarCached(emitter_mock);
+const fileContent: TarContent = {
+  fileName: "/APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY",
+  fileData: {
+    fileContent: ["content"],
+    fileMetadata: {
+      ctime: 0,
+      mtime: 0,
+      size: 0,
+      type: vscode.FileType.File,
+    },
+  },
+};
+const tarContent: TarContent[] = [fileContent];
+tarCache.execute = jest.fn().mockResolvedValue(tarContent);
+
 beforeAll(async () => {
   await initializeExternalAPIs(
     vscode.Uri.file("/storage"),
@@ -48,10 +63,7 @@ describe("Tar copybook lib tests", () => {
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
       );
-      vscode.workspace.fs.readDirectory = jest.fn().mockResolvedValue([
-        ["APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY", vscode.FileType.File],
-        ["SOME/RANDOM/FILE.CPY", vscode.FileType.File],
-      ]);
+
       const result = await dsnTarLib.resolveCopybookUri(
         "DEPARTMENT",
         vscode.Uri.file("/program.cbl"),
@@ -71,25 +83,21 @@ describe("Tar copybook lib tests", () => {
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
       );
-      vscode.workspace.fs.readDirectory = jest.fn().mockResolvedValue([
-        ["APPLDICT/EMPRPT/RECORD/DEPARTMENT1.CPY", vscode.FileType.File],
-        ["SOME/RANDOM/FILE.CPY", vscode.FileType.File],
-      ]);
+
       expect(
         await dsnTarLib.resolveCopybookUri(
-          "DEPARTMENT",
+          "DEPARTMENT1",
           vscode.Uri.file("/program.cbl"),
           DEFAULT_DIALECT,
         ),
       ).toBeFalsy();
     });
     it("local tar doesnt exists", async () => {
-      extApis.isPresentLocally = jest.fn().mockReturnValue(false);
       const localTarLib = new TarCopybookLib(
         "local",
         "path/for/tar",
         "APPLDICT/EMPRPT/**",
-        tarCache,
+        getTarCached(emitter_mock),
         "zeProfile",
       );
       expect(
@@ -108,6 +116,7 @@ describe("Tar copybook lib tests", () => {
       );
       extApis.dsnService.downloadFile = jest.fn();
       extApis.isPresentLocally = jest.fn().mockReturnValue(false);
+      extApis.dsnService.getAllMembers = jest.fn();
       const dsnTarLib = new TarCopybookLib(
         "DSN",
         "path/for/tar",
@@ -120,9 +129,9 @@ describe("Tar copybook lib tests", () => {
         vscode.Uri.file("/program.cbl"),
         DEFAULT_DIALECT,
       );
-      expect(dsnTarLib.listCopybooks).toHaveBeenCalledWith(
-        "path/for/tar",
+      expect(extApis.dsnService.getAllMembers).toHaveBeenCalledWith(
         "zeProfile",
+        "path/for/tar",
       );
     });
   });
