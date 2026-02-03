@@ -14,6 +14,7 @@
 import { TAR_FOLDER } from "../../../constants";
 import { splitFilename } from "../../util/FSUtils";
 import { loadProfile } from "../../util/Utils";
+import { zoweSemaphore } from "../ZoweThrottling";
 import {
   MemberCacheItem,
   ZoweExplorerDownloader,
@@ -45,11 +46,13 @@ export class CopybookDownloaderForDsn extends ZoweExplorerDownloader {
     await this.limitFailedRequests(
       `list dataset members ${profileName}/${dataset}`,
       async () => {
-        const response = await vscode.workspace.fs.readDirectory(
-          vscode.Uri.from({
-            scheme: "zowe-ds",
-            path: `/${profileName}/${dataset}`,
-          }),
+        const response = await zoweSemaphore.locked(() =>
+          vscode.workspace.fs.readDirectory(
+            vscode.Uri.from({
+              scheme: "zowe-ds",
+              path: `/${profileName}/${dataset}`,
+            }),
+          ),
         );
         members = response.map((item) => {
           const [name, extension] = splitFilename(item[0]);

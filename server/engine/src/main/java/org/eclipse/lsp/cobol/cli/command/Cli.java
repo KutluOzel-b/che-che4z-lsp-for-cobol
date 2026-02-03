@@ -49,6 +49,7 @@ import picocli.CommandLine;
     description = "COBOL Analysis CLI tools.",
     mixinStandardHelpOptions = true,
     scope = CommandLine.ScopeType.INHERIT,
+    versionProvider = VersionProvider.class,
     subcommands = {ListSources.class, ListCopybooks.class, CliAnalysis.class, CliCFAST.class})
 @Slf4j
 public class Cli implements Callable<Integer> {

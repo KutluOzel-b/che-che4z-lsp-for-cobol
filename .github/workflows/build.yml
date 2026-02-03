@@ -94,6 +94,31 @@ jobs:
           name: clients-for-bd-scan
           path: clients/**
           if-no-files-found: error
+  build-info:
+    runs-on: ubuntu-latest
+    outputs:
+      client-details: ${{ steps.BUILD_ID.outputs.client-details }}
+      latest_sha: ${{ steps.BUILD_ID.outputs.latest_sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: set build id
+        id: BUILD_ID
+        working-directory: clients/cobol-lsp-vscode-extension
+        run: |
+          is_pr="${{ github.event_name == 'pull_request' }}"
+          is_manual="${{ github.event.inputs.include_build_number == 'true' }}"
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          DETAILS="$PACKAGE_VERSION"
+          if [[ "$is_pr" == "true" || "$is_manual" == "true" ]]; then
+            if [[ "$is_pr" == "true" ]]; then
+              ID="pr-${{ github.event.pull_request.number }}"
+            else
+              ID="${{ github.run_number }}"
+            fi
+            DETAILS="${DETAILS}+${ID}"
+          fi
+          echo "latest_sha=${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}" >> $GITHUB_OUTPUT
+          echo "client-details=$DETAILS" >> $GITHUB_OUTPUT
 
   generateNativeConfig:
     runs-on: ubuntu-latest
@@ -120,6 +145,7 @@ jobs:
 
   buildPlatformIndependedPart:
     runs-on: ubuntu-latest
+    needs: build-info
     steps:
       - uses: actions/checkout@v4
         with:
@@ -130,6 +156,9 @@ jobs:
           java-version: '11'
           cache: 'maven'
       - name: Build Server and Dialects Jars
+        env: 
+          CLIENT_DETAIL: ${{ needs.build-info.outputs.client-details }}
+          GIT_SHA: ${{ needs.build-info.outputs.latest_sha }}
         working-directory: server
         run: mvn clean verify --no-transfer-progress
       - name: Upload performance data
@@ -285,7 +314,7 @@ jobs:
           - os: macos-14
             arch: arm64
     runs-on: ${{ matrix.os }}
-    needs: [generateNativeConfig]
+    needs: [generateNativeConfig, build-info]
     steps:
       # Generate environment variable
       - shell: pwsh
@@ -347,10 +376,16 @@ jobs:
           rm server/engine/src/main/resources/META-INF/native-image/session-*/jni-config.json
         shell: bash
       - name: Build with Maven
+        env: 
+          CLIENT_DETAIL: ${{ needs.build-info.outputs.client-details }}
+          GIT_SHA: ${{ needs.build-info.outputs.latest_sha }}
         working-directory: server
         if: matrix.os != 'ubuntu-latest' || matrix.arch != 'x64'
         run: mvn -e -B -Pnative -DskipTests clean package
       - name: Build with Maven for Linux
+        env: 
+          CLIENT_DETAIL: ${{ needs.build-info.outputs.client-details }}
+          GIT_SHA: ${{ needs.build-info.outputs.latest_sha }}
         if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
         working-directory: server
         run: mvn -e -B -Plinux-native -DskipTests clean package

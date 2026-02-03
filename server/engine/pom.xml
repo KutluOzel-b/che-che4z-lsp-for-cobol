@@ -268,6 +268,11 @@
                                 <manifest>
                                     <mainClass>org.eclipse.lsp.cobol.LangServerBootstrap</mainClass>
                                 </manifest>
+                                <manifestEntries>
+                                    <Build-Time>${maven.build.timestamp}</Build-Time>
+                                    <Version>${env.CLIENT_DETAIL}</Version>
+                                    <Commit>${env.GIT_SHA}</Commit>
+                                </manifestEntries>
                             </archive>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
