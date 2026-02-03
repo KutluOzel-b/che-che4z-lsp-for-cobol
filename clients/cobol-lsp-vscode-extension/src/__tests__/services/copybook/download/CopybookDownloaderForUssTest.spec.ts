@@ -18,7 +18,6 @@ import { TextEncoder } from "util";
 import { SettingsService } from "../../../../services/Settings";
 import { CopybookDownloaderForUss } from "../../../../services/copybook/downloader/CopybookDownloaderForUss";
 import { readDirectoryResult } from "../../../../__mocks__/vscode";
-import { createZoweExplorerMock } from "../../../../__mocks__/getZoweExplorerMock.utility";
 
 describe("Tests Copybook download from USS", () => {
   beforeEach(() => {
@@ -52,10 +51,7 @@ describe("Tests Copybook download from USS", () => {
       jest
         .spyOn(SettingsService, "getCopybookExtension")
         .mockResolvedValue([".cpy", ""]);
-      downloader = new CopybookDownloaderForUss(
-        vscode.Uri.parse("storage-path"),
-        createZoweExplorerMock(),
-      );
+      downloader = new CopybookDownloaderForUss();
     });
 
     describe("checks eligible copybook invoke appropriate ZE Api's", () => {

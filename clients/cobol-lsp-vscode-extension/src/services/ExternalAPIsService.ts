@@ -25,6 +25,7 @@ import { clearProfiles } from "./util/ProfileUtils";
 import { outputChannel } from "./util/OutputChannel";
 import { TarContent } from "./util/TarUtil";
 import { Memoize } from "./util/Memoize";
+import { CopybookBinaryDownloader } from "./copybook/downloader/CopybookBinaryDownloader";
 
 export type { ExternalAPIsService };
 
@@ -90,6 +91,7 @@ class ExternalAPIsService {
   dsnService?: CopybookDownloaderForDsn;
   ussService?: CopybookDownloaderForUss;
   e4eDownloader?: CopybookDownloaderForE4E;
+  binaryDownloader?: CopybookBinaryDownloader;
   tarCache?: Memoize<[tarFileUri: vscode.Uri], TarContent[]>;
 
   constructor(
@@ -119,25 +121,6 @@ class ExternalAPIsService {
     clearProfiles();
   }
 
-  public async isPresentLocally(
-    inputPath: string | vscode.Uri | undefined,
-    isUnderExtStorage: boolean = true,
-  ) {
-    if (!inputPath) return false;
-    const uri =
-      inputPath instanceof vscode.Uri
-        ? inputPath
-        : isUnderExtStorage
-          ? vscode.Uri.joinPath(this.storagePath, inputPath)
-          : vscode.Uri.parse(inputPath);
-    try {
-      await vscode.workspace.fs.stat(uri);
-      return true;
-    } catch (_error) {
-      return false;
-    }
-  }
-
   public handleAsEndevorElement(documentUri: string) {
     return (
       SettingsService.getCopybookEndevorDependencySettings() ===
@@ -155,8 +138,9 @@ class ExternalAPIsService {
   }
 
   public explorerAppeared(api: IApiRegisterClient) {
-    this.ussService = new CopybookDownloaderForUss(this.storagePath, api);
-    this.dsnService = new CopybookDownloaderForDsn(this.storagePath, api);
+    this.ussService = new CopybookDownloaderForUss();
+    this.dsnService = new CopybookDownloaderForDsn();
+    this.binaryDownloader = new CopybookBinaryDownloader(this.storagePath, api);
     diagnosticCollection.clear();
     if (api.onProfileUpdated) {
       api.onProfileUpdated((profile: IProfileLoaded) => {

@@ -48,26 +48,21 @@ export class TarCopybookLib implements CopybookLib {
       tarFileUri = local ? local[0] : undefined;
       if (!tarFileUri) return;
     } else {
-      const effectiveExternalApi =
-        this.locationType === "DSN"
-          ? externalApis.dsnService
-          : externalApis.ussService;
+      const binaryDownloader = externalApis.binaryDownloader;
+      if (!binaryDownloader) return;
 
-      tarFileUri = effectiveExternalApi?.getTarFileUri(evaluatedTarPath);
+      tarFileUri = binaryDownloader.getTarFileUri(evaluatedTarPath);
       const isAvailableAlready =
-        await externalApis.isPresentLocally(tarFileUri);
+        await binaryDownloader.isPresentLocally(tarFileUri);
 
       if (!isAvailableAlready) {
         const profile = this.getProfile(documentUri);
-        const members = await externalApis.dsnService?.getAllMembers(
-          profile,
-          this.tarFileLocation,
-        );
-        if (!members || !(members.length > 0)) return;
+
         if (
-          !(await externalApis.dsnService?.downloadFile(
+          !(await binaryDownloader.downloadFile(
             this.tarFileLocation,
             profile,
+            this.locationType,
           ))
         )
           return;
@@ -107,13 +102,12 @@ export class TarCopybookLib implements CopybookLib {
       tarFileUri = local ? local[0] : undefined;
       if (!tarFileUri) return [];
     } else {
-      const effectiveExternalApi =
-        this.locationType === "DSN"
-          ? externalApis.dsnService
-          : externalApis.ussService;
-      tarFileUri = effectiveExternalApi?.getTarFileUri(evaluatedTarPath);
+      const binaryDownloader = externalApis.binaryDownloader;
+      if (!binaryDownloader) return [];
+
+      tarFileUri = binaryDownloader.getTarFileUri(evaluatedTarPath);
       const isAvailableAlready =
-        await externalApis.isPresentLocally(tarFileUri);
+        await binaryDownloader.isPresentLocally(tarFileUri);
 
       if (!isAvailableAlready || !tarFileUri) {
         return [];

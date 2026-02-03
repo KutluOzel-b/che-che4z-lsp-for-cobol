@@ -5,10 +5,10 @@ import {
   initializeExternalAPIs,
 } from "../../../../services/ExternalAPIsService";
 import { DEFAULT_DIALECT } from "../../../../constants";
-import { CopybookDownloaderForDsn } from "../../../../services/copybook/downloader/CopybookDownloaderForDsn";
 import { createZoweExplorerMock } from "../../../../__mocks__/getZoweExplorerMock.utility";
 import { SettingsService } from "../../../../services/Settings";
 import { getTarCached, TarContent } from "../../../../services/util/TarUtil";
+import { CopybookBinaryDownloader } from "../../../../services/copybook/downloader/CopybookBinaryDownloader";
 
 const emitter_mock: vscode.EventEmitter<vscode.FileChangeEvent[]> = {
   dispose: jest.fn().mockResolvedValue({}),
@@ -59,7 +59,7 @@ describe("Tar copybook lib tests", () => {
       "zeProfile",
     );
     it("copybook exists in tar", async () => {
-      extApis.dsnService = new CopybookDownloaderForDsn(
+      extApis.binaryDownloader = new CopybookBinaryDownloader(
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
       );
@@ -79,7 +79,7 @@ describe("Tar copybook lib tests", () => {
       expect((result as vscode.Uri).fsPath).toBe(expectedValue.fsPath);
     });
     it("copybook not present in the tar", async () => {
-      extApis.dsnService = new CopybookDownloaderForDsn(
+      extApis.binaryDownloader = new CopybookBinaryDownloader(
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
       );
@@ -110,13 +110,14 @@ describe("Tar copybook lib tests", () => {
     });
 
     it("remote tar doesnt exists", async () => {
-      extApis.dsnService = new CopybookDownloaderForDsn(
+      extApis.binaryDownloader = new CopybookBinaryDownloader(
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
       );
-      extApis.dsnService.downloadFile = jest.fn();
-      extApis.isPresentLocally = jest.fn().mockReturnValue(false);
-      extApis.dsnService.getAllMembers = jest.fn();
+      extApis.binaryDownloader.downloadFile = jest.fn();
+      extApis.binaryDownloader.isPresentLocally = jest
+        .fn()
+        .mockReturnValue(false);
       const dsnTarLib = new TarCopybookLib(
         "DSN",
         "path/for/tar",
@@ -129,16 +130,17 @@ describe("Tar copybook lib tests", () => {
         vscode.Uri.file("/program.cbl"),
         DEFAULT_DIALECT,
       );
-      expect(extApis.dsnService.getAllMembers).toHaveBeenCalledWith(
-        "zeProfile",
+      expect(extApis.binaryDownloader.downloadFile).toHaveBeenCalledWith(
         "path/for/tar",
+        "zeProfile",
+        "DSN",
       );
     });
   });
 
   describe("listCopybooks", () => {
     it("list copybook from tar", async () => {
-      extApis.dsnService = new CopybookDownloaderForDsn(
+      extApis.binaryDownloader = new CopybookBinaryDownloader(
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
       );
