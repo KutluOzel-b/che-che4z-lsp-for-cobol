@@ -24,13 +24,13 @@ export class CopybookBinaryDownloader {
     const loadedProfile = loadProfile(profile, this.explorerAPI);
     const tarUri = this.getTarFileUri(path);
     if (type == "DSN")
-      return this.explorerAPI.getMvsApi(loadedProfile).getContents(`${path}`, {
+      return this.explorerAPI.getMvsApi(loadedProfile).getContents(path, {
         file: tarUri.fsPath,
         returnEtag: true,
         binary: true,
       });
     else
-      return this.explorerAPI.getUssApi(loadedProfile).getContents(`${path}`, {
+      return this.explorerAPI.getUssApi(loadedProfile).getContents(path, {
         file: tarUri.fsPath,
         returnEtag: true,
         binary: true,

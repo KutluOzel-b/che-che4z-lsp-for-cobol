@@ -263,23 +263,16 @@ const readWorkspaceConfigCached = new Memoize(
 export const readWorkspaceConfig = readWorkspaceConfigCached.execute;
 
 export function readSettingConfig(dialectType: string): ProcessorGroup {
-  type localTar = {
-    locationType: "local";
-    tarFileLocation: string;
-    searchPattern: string;
-  };
-
   // local paths
   const directoryPaths = SettingsService.getLocalPath(dialectType).map(
     (localPath) => {
       if (isTarPath(localPath)) {
         const { tarPath, internalPath } = extractTarPath(localPath);
-        const local: localTar = {
+        return TarConfigLocalModel.encode({
           locationType: "local",
           tarFileLocation: tarPath,
           searchPattern: internalPath,
-        };
-        return local;
+        });
       }
       return localPath;
     },

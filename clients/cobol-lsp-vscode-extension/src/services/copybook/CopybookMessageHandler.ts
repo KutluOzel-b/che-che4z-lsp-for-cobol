@@ -53,7 +53,6 @@ export async function resolveCopybookURI(
   const promises = pgLibs.map((lib) =>
     lib.resolveCopybookUri(copybookName, uri, dialectType),
   );
-
   const results = await Promise.allSettled(promises);
   for (const result of results) {
     if (result.status === "fulfilled" && result.value) {
