@@ -114,6 +114,7 @@ class ExternalAPIsService {
     this.ussService?.clearMemberListCache();
     this.e4eDownloader?.clearProfiles();
     this.tarCache?.clearCache();
+    this.binaryDownloader?.clearCache();
   }
 
   clearProfiles() {
