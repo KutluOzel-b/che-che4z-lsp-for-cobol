@@ -3,7 +3,6 @@ import { Memoize } from "../services/util/Memoize";
 import { splitTarfileUri, TarContent } from "../services/util/TarUtil";
 import * as path from "path";
 
-const reg = /tar:(.*?)\$\$/;
 export const SEPARATOR = "::";
 export class TarCopybookFileSystemProvider
   implements vscode.FileSystemProvider
@@ -111,12 +110,9 @@ export class TarCopybookFileSystemProvider
    */
   public clearCache() {
     for (const value of this.tarCache.getKeys()) {
-      const fspath = value.match(reg);
-      if (!fspath) continue;
-      const uri = vscode.Uri.parse(fspath[1]);
-      this.fireChange({ type: vscode.FileChangeType.Changed, uri: uri });
+      const uri = vscode.Uri.parse(value);
+      this.fireChange({ type: vscode.FileChangeType.Deleted, uri: uri });
     }
-
     this.tarCache.clearCache();
   }
 
