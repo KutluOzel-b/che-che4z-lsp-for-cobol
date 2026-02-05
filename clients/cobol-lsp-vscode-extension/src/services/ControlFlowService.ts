@@ -58,6 +58,11 @@ interface AnalysisServiceDelegate {
     events: EventDto[],
     requestVersion: number,
   ): void;
+  finishTaskWithError(
+    documentUri: string,
+    error: Error,
+    requestVersion: number,
+  ): void;
 }
 
 type LatestResultData = {
@@ -71,7 +76,7 @@ type LatestResultData = {
     }
   | {
       resolve: (value: AnalysisResult | PromiseLike<AnalysisResult>) => void;
-      reject: (reason: string) => void;
+      reject: (reason: Error) => void;
       promise: Promise<AnalysisResult>;
     }
   | {
@@ -106,6 +111,12 @@ export class AnalysisTask {
           data.payload.events,
           this.requestVersion,
         );
+      } else if (data.type === "error") {
+        this.delegate.finishTaskWithError(
+          this.documentUri,
+          Error(data.payload),
+          this.requestVersion,
+        );
       } else if (data.type === "log") {
         for (const message of data.payload) {
           switch (message.severity) {
@@ -125,15 +136,15 @@ export class AnalysisTask {
         }
       }
     });
-    this.worker.on("error", (code) => {
+    this.worker.on("error", (error) => {
       this.mainChannel?.appendLine(
-        `Error starting Control Flow Analysis: ${code}`,
+        `Error occured during Control Flow Analysis: ${error}`,
       );
-      const event: EventDto = {
-        eventName: EVENT_ANALYSIS_ERROR,
-        message: `Error starting Control Flow Analysis: ${code}`,
-      };
-      this.delegate.finishTask(this.documentUri, [], [], new Map(), [event], 0);
+      this.delegate.finishTaskWithError(
+        this.documentUri,
+        error,
+        this.requestVersion,
+      );
     });
 
     this.worker.postMessage({
@@ -273,6 +284,37 @@ export class ControlFlowAnalysisService implements AnalysisServiceDelegate {
     this.tasks.delete(documentUri);
   }
 
+  finishTaskWithError(
+    documentUri: string,
+    error: Error,
+    requestVersion: number,
+  ): void {
+    this.logChannel?.error(`Analysis terminated with error: ${error.message}`);
+    this.logChannel?.debug(
+      `Finish task with error for request version: ${requestVersion}`,
+    );
+
+    const result = this.latestResults.get(documentUri);
+    this.logChannel?.debug(
+      `Latest result request version: ${result?.requestVersion}`,
+    );
+
+    if (requestVersion === result?.requestVersion) {
+      this.logChannel?.debug(
+        `Reject promise for request version: ${result?.requestVersion}`,
+      );
+
+      result.resolved = true;
+      if (result.reject) result.reject(error);
+      else result.promise = Promise.reject(error);
+    }
+
+    this.diagnosticService.showAllDiagnostics(documentUri, new Map());
+    telemetryExceptionEvent(EVENT_ANALYSIS_ERROR, error.message, ["ccf"]);
+
+    this.tasks.delete(documentUri);
+  }
+
   private createLatestResultEntry(
     documentUri: string,
     requestVersion: number,
@@ -304,7 +346,7 @@ export class ControlFlowAnalysisService implements AnalysisServiceDelegate {
     if (latestResult) {
       if (rejectPromise) {
         this.latestResults.delete(documentUri);
-        latestResult.reject?.("invalidate");
+        latestResult.reject?.(Error("invalidate"));
       } else {
         latestResult.requestVersion = 0;
       }

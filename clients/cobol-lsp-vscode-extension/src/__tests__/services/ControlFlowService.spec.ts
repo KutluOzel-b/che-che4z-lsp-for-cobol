@@ -67,17 +67,34 @@ let payload = {
 } as unknown;
 
 let messageType = "result";
+let lastWorkerResultTrigger: undefined | (() => void);
+let lastWorkerErrorTrigger: undefined | ((e: Error) => void);
+
+beforeEach(() => {
+  lastWorkerResultTrigger = undefined;
+  lastWorkerErrorTrigger = undefined;
+});
 
 jest.mock("worker_threads", () => ({
   Worker: class {
-    constructor(private path: string) {}
-    public on(_message: string, listener: (value: unknown) => void) {
-      listener({
-        type: messageType,
-        payload: payload,
-      });
+    events = new Map<string, (value: unknown) => void>();
+    constructor(private path: string) {
+      lastWorkerErrorTrigger = (e) => {
+        console.log("worker error", e);
+        this.events.get("error")?.call(undefined, e);
+      };
     }
-    public postMessage(_message: unknown) {}
+    public on(event: string, listener: (value: unknown) => void) {
+      this.events.set(event, listener);
+    }
+    public postMessage(_message: unknown) {
+      lastWorkerResultTrigger = () => {
+        this.events.get("message")?.call(undefined, {
+          type: messageType,
+          payload: payload,
+        });
+      };
+    }
     public terminate() {}
   },
 }));
@@ -98,6 +115,19 @@ describe("ControlFlowService tests", () => {
     expect(latestResults.size).toBe(1);
 
     await service.invalidate("documentUri", true);
+  });
+
+  test("Propagate errors", async () => {
+    const service = new ControlFlowAnalysisService();
+    await service.handleControlFlowAst(apiResult);
+
+    expect(lastWorkerErrorTrigger).toBeTruthy();
+
+    const p = service.getAnalysis(apiResult.documentUri);
+
+    lastWorkerErrorTrigger?.(Error("boom"));
+
+    await expect(p).rejects.toThrow("boom");
   });
 });
 
@@ -129,6 +159,9 @@ describe("ControlFlowService analysis task tests", () => {
       logChannel as unknown as LogOutputChannel,
     );
     await service.handleControlFlowAst(apiResult);
+
+    lastWorkerResultTrigger?.();
+
     expect(logChannel.error).toHaveBeenCalled();
   });
 
@@ -141,6 +174,9 @@ describe("ControlFlowService analysis task tests", () => {
       logChannel as unknown as LogOutputChannel,
     );
     await service.handleControlFlowAst(apiResult);
+
+    lastWorkerResultTrigger?.();
+
     expect(logChannel.warn).toHaveBeenCalled();
   });
 
@@ -153,6 +189,9 @@ describe("ControlFlowService analysis task tests", () => {
       logChannel as unknown as LogOutputChannel,
     );
     await service.handleControlFlowAst(apiResult);
+
+    lastWorkerResultTrigger?.();
+
     expect(logChannel.info).toHaveBeenCalled();
   });
 
