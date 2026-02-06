@@ -31,6 +31,14 @@ describe("TarCopybookFileSystemProvider", () => {
     "tar",
     "output.cobol-ls-tar",
   );
+  const testFileSymUri = vscode.Uri.joinPath(
+    root,
+    root.fsPath.includes("src") ? "" : "src",
+    "__tests__",
+    "resources",
+    "tar",
+    "sym.cobol-ls-tar",
+  );
 
   beforeEach(async () => {
     await tarCache.execute(testFileUri);
@@ -177,6 +185,42 @@ describe("TarCopybookFileSystemProvider", () => {
       } catch (error: unknown) {
         if (error instanceof Error) expect(error.message).toBe("No Permission");
       }
+    });
+  });
+  describe("Symbolic Links", () => {
+    test("should return FileStat for an existing file symlink", async () => {
+      await tarCache.execute(testFileSymUri);
+      const uri = vscode.Uri.from({
+        path: vscode.Uri.joinPath(
+          testFileSymUri,
+          "::",
+          "APPLDICT/EMPRPT/RECORD/SKILL.CPY",
+        ).path,
+        scheme: testFileSymUri.scheme,
+      });
+      const stat = await provider.stat(uri);
+      expect(stat.type).toBe(vscode.FileType.File);
+      expect(stat.size).toBe(216);
+      expect(typeof stat.ctime).toBe("number");
+      expect(typeof stat.mtime).toBe("number");
+    });
+
+    test("should return file content as Uint8Array for an existing file symlink", async () => {
+      const uri = vscode.Uri.joinPath(
+        testFileSymUri,
+        "::",
+        "APPLDICT/EMPRPT/RECORD/SKILL.CPY",
+      );
+      const content = await provider.readFile(uri);
+      const expectedCopybookContent =
+        "       01  SKILL.\n" +
+        "           02  SKILL-ID-0455           PIC 9(4).\n" +
+        "           02  SKILL-NAME-0455         PIC X(12).\n" +
+        "           02  SKILL-DESCRIPTION-0455  PIC X(60).\n" +
+        "           02  FILLER                  PIC X(4).\n";
+      expect(content).toBeInstanceOf(Uint8Array);
+      const stringContent = new TextDecoder().decode(content);
+      expect(stringContent).toBe(expectedCopybookContent);
     });
   });
 });
