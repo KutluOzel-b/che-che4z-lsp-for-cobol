@@ -78,11 +78,11 @@
           },
           "tarFileLocation": {
             "type": "string",
-            "description": "path of the tar file located locally on the current machine"
+            "description": "Path of the TAR file located locally on the current machine"
           },
           "searchPattern": {
             "type": "string",
-            "description": "path/Wildcard pattern of folder structure within a tar file where copybooks needs to be searched",
+            "description": "Path or wildcard pattern of folders within the TAR file to search for copybooks",
             "default": "**"
           }
         },
@@ -94,20 +94,20 @@
           "locationType": {
             "type": "string",
             "enum": ["DSN", "USS"],
-            "description": "remote location type where TAR file is located. Can take either DSN or USS as value."
+            "description": "Type of the remote location where the TAR file is stored (DSN or USS)"
           },
           "tarFileLocation": {
             "type": "string",
-            "description": "string representing the path of the tar file. This could be a dataset name if tar is located in DSN or a USS directory on the mainframe when tar is located in USS"
+            "description": "Data set name or USS directory path of the TAR file"
           },
           "searchPattern": {
             "type": "string",
-            "description": "path/Wildcard pattern of folder structure within a tar file where copybooks needs to be searched",
+            "description": "Path or wildcard pattern of folders within the TAR file to search for copybooks",
             "default": "**"
           },
           "profile": {
             "type": "string",
-            "description": "Profile name to be used by the ZE extension"
+            "description": "Zowe Explorer profile name"
           }
         },
         "required": ["locationType", "tarFileLocation", "searchPattern"]
