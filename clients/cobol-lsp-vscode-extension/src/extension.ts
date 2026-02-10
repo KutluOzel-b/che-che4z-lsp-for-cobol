@@ -412,7 +412,7 @@ function registerCommands(
       "cobol-lsp.clear.downloaded.copybooks",
       async () => {
         await clearCache(context.globalStorageUri);
-        externalApis.clearCache();
+        await externalApis.clearCache();
       },
     ),
   );
