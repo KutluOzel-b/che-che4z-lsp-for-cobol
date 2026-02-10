@@ -160,21 +160,4 @@ describe("Tar copybook lib tests", () => {
     });
     describe("tar doesn't exists", () => {});
   });
-  describe("Download cache", () => {
-    it("clear cache calls downloader clear cache , deletes folder & recreates it", async () => {
-      extApis.binaryDownloader = new CopybookBinaryDownloader(
-        vscode.Uri.file("/storage"),
-        createZoweExplorerMock(),
-      );
-      await extApis.clearCache();
-      expect(vscode.workspace.fs.delete).toHaveBeenCalledTimes(1);
-      expect(vscode.workspace.fs.delete).toHaveBeenCalledWith(
-        vscode.Uri.file("/storage/tar"),
-        { recursive: true },
-      );
-      expect(vscode.workspace.fs.createDirectory).toHaveBeenCalledWith(
-        vscode.Uri.file("/storage/tar"),
-      );
-    });
-  });
 });

@@ -109,12 +109,11 @@ class ExternalAPIsService {
   /**
    * Clears downloaders cache
    */
-  async clearCache() {
+  clearCache() {
     this.dsnService?.clearMemberListCache();
     this.ussService?.clearMemberListCache();
     this.e4eDownloader?.clearProfiles();
     this.tarCache?.clearCache();
-    await this.binaryDownloader?.clearCache();
   }
 
   clearProfiles() {
@@ -144,9 +143,9 @@ class ExternalAPIsService {
     this.binaryDownloader = new CopybookBinaryDownloader(this.storagePath, api);
     diagnosticCollection.clear();
     if (api.onProfileUpdated) {
-      api.onProfileUpdated(async (profile: IProfileLoaded) => {
+      api.onProfileUpdated((profile: IProfileLoaded) => {
         outputChannel.appendLine(`Zowe profile ${profile.name} updated`);
-        await this.clearCache();
+        this.clearCache();
         if (this.configurationInvalidation) {
           this.configurationInvalidation();
         }
