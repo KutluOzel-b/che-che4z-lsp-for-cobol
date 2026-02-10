@@ -27,6 +27,7 @@ afterAll(() => {
 describe("Tests downloaded copybook cache clear", () => {
   it("verify that the clearCache tries to delete cache directories", async () => {
     readDirectoryResult["/storagePath/e4e/copybooks"] = [{ name: "fileName" }];
+    readDirectoryResult["/storagePath/tar"] = [{ name: "" }];
     await clearCache(vscode.Uri.file("/storagePath"));
     expect(vscode.workspace.fs.readDirectory).toHaveBeenNthCalledWith(
       1,
@@ -36,6 +37,12 @@ describe("Tests downloaded copybook cache clear", () => {
     expect(vscode.workspace.fs.delete).toHaveBeenNthCalledWith(
       1,
       vscode.Uri.file("/storagePath/e4e/copybooks/fileName"),
+      { recursive: true, useTrash: false },
+    );
+
+    expect(vscode.workspace.fs.delete).toHaveBeenNthCalledWith(
+      2,
+      vscode.Uri.file("/storagePath/tar"),
       { recursive: true, useTrash: false },
     );
   });
