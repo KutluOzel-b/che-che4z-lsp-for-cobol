@@ -64,7 +64,16 @@ export class TarCopybookFileSystemProvider
       throw new Error(`Failed to retrieve content for URI: ${uri.toString()}`);
     }
     const result: [string, vscode.FileType][] = [];
-
+    if (
+      !tarContent.find(
+        (x) =>
+          x.fileData.fileMetadata.type === vscode.FileType.Directory &&
+          (x.fileName.endsWith("/")
+            ? x.fileName.slice(0, -1) === directory
+            : x.fileName === directory),
+      )
+    )
+      throw new Error(`Failed to retrieve content for URI: ${uri.toString()}`);
     const contents = this.getOneLevelChildren(tarContent, directory);
     contents.forEach((t) =>
       result.push([t.fileName, t.fileData.fileMetadata.type]),

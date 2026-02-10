@@ -58,9 +58,9 @@ export class CopybookBinaryDownloader {
       return false;
     }
   }
-  public clearCache() {
+  public async clearCache() {
     const tarFolderUri = vscode.Uri.joinPath(this.storagePath, TAR_FOLDER);
-    vscode.workspace.fs.delete(tarFolderUri, { recursive: true });
-    vscode.workspace.fs.createDirectory(tarFolderUri);
+    await vscode.workspace.fs.delete(tarFolderUri, { recursive: true });
+    await vscode.workspace.fs.createDirectory(tarFolderUri);
   }
 }

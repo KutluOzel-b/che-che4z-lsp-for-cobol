@@ -98,8 +98,20 @@ describe("TarCopybookFileSystemProvider", () => {
         scheme: testFileUri.scheme,
       });
 
-      const entries = await provider.readDirectory(uri);
-
+      await expect(provider.readDirectory(uri)).rejects.toThrow(
+        vscode.FileSystemError.FileNotFound(uri).message,
+      );
+    });
+    test("Reading an empty directory does not throws & produces empty contents", async () => {
+      const directory = vscode.Uri.from({
+        path: vscode.Uri.joinPath(
+          testFileSymUri,
+          "::",
+          "APPLDICT/EMPRPT/EMPTY_DIRECTORY",
+        ).path,
+        scheme: testFileUri.scheme,
+      });
+      const entries = await provider.readDirectory(directory);
       expect(entries.length).toBe(0);
     });
   });
@@ -221,6 +233,35 @@ describe("TarCopybookFileSystemProvider", () => {
       expect(content).toBeInstanceOf(Uint8Array);
       const stringContent = new TextDecoder().decode(content);
       expect(stringContent).toBe(expectedCopybookContent);
+    });
+
+    test("should throw for non existing file symlink", async () => {
+      await tarCache.execute(testFileSymUri);
+      const uri = vscode.Uri.from({
+        path: vscode.Uri.joinPath(
+          testFileSymUri,
+          "::",
+          "APPLDICT/EMPRPT/RECORD/NON_EXISTENT.CPY",
+        ).path,
+        scheme: testFileSymUri.scheme,
+      });
+      await expect(provider.readFile(uri)).rejects.toThrow(
+        vscode.FileSystemError.FileNotFound(uri).message,
+      );
+    });
+    test("should throw for symlink having original location outside of tar file", async () => {
+      await tarCache.execute(testFileSymUri);
+      const uri = vscode.Uri.from({
+        path: vscode.Uri.joinPath(
+          testFileSymUri,
+          "::",
+          "APPLDICT/EMPRPT/RECORD/outsideLink.CPY",
+        ).path,
+        scheme: testFileSymUri.scheme,
+      });
+      await expect(provider.readFile(uri)).rejects.toThrow(
+        vscode.FileSystemError.FileNotFound(uri).message,
+      );
     });
   });
 });

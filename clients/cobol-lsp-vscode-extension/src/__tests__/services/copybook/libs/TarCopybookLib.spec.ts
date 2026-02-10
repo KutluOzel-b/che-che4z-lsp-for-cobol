@@ -31,20 +31,16 @@ const fileContent: TarContent = {
 const tarContent: TarContent[] = [fileContent];
 tarCache.execute = jest.fn().mockResolvedValue(tarContent);
 
-beforeAll(async () => {
-  await initializeExternalAPIs(
-    vscode.Uri.file("/storage"),
-    undefined,
-    tarCache,
-  );
-});
-
 describe("Tar copybook lib tests", () => {
   let extApis: ExternalAPIsService;
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    extApis = await initializeExternalAPIs(vscode.Uri.file("/storage"));
+    extApis = await initializeExternalAPIs(
+      vscode.Uri.file("/storage"),
+      undefined,
+      tarCache,
+    );
   });
 
   describe("resolveCopybookUri", () => {
@@ -165,12 +161,12 @@ describe("Tar copybook lib tests", () => {
     describe("tar doesn't exists", () => {});
   });
   describe("Download cache", () => {
-    it("clear cache calls downloader clear cache , deletes folder & recreates it", () => {
+    it("clear cache calls downloader clear cache , deletes folder & recreates it", async () => {
       extApis.binaryDownloader = new CopybookBinaryDownloader(
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
       );
-      extApis.clearCache();
+      await extApis.clearCache();
       expect(vscode.workspace.fs.delete).toHaveBeenCalledTimes(1);
       expect(vscode.workspace.fs.delete).toHaveBeenCalledWith(
         vscode.Uri.file("/storage/tar"),
