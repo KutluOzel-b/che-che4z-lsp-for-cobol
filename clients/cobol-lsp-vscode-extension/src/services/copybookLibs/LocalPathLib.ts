@@ -56,8 +56,6 @@ export default class LocalPathLib implements CopybookLib {
       dialect,
     );
 
-    // TODO: search in tar file locally and return if found or return undefined
-
     const promises = uris.map(async (uri) => {
       return await localCopybooks.searchDirectory(
         uri,
