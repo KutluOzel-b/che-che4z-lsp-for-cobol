@@ -86,7 +86,7 @@
             "default": "**"
           }
         },
-        "required": ["locationType", "tarFileLocation", "searchPattern"]
+        "required": ["locationType", "tarFileLocation"]
       },
       {
         "type": "object",
@@ -110,7 +110,7 @@
             "description": "Zowe Explorer profile name"
           }
         },
-        "required": ["locationType", "tarFileLocation", "searchPattern"]
+        "required": ["locationType", "tarFileLocation"]
       }
     ]
   }

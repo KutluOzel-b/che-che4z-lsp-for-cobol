@@ -138,18 +138,20 @@ export class TarCopybookLib implements CopybookLib {
       "locationType" in config &&
       "tarFileLocation" in config
     ) {
+      const searchPattern =
+        "searchPattern" in config ? config["searchPattern"] : "**";
       if ("profile" in config)
         return new TarCopybookLib(
           config["locationType"],
           config["tarFileLocation"],
-          config["searchPattern"],
+          searchPattern,
           externalApis.tarCache,
           config["profile"],
         );
       return new TarCopybookLib(
         config["locationType"],
         config["tarFileLocation"],
-        config["searchPattern"],
+        searchPattern,
         externalApis.tarCache,
       );
     }

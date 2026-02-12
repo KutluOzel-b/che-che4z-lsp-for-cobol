@@ -160,19 +160,19 @@ export function extractTarPath(input: string): {
   }
   const filePathStartIndex = tarPrefixIndex + TAR_PREFIX.length;
 
-  // 2. Find the index of the separator '!'
+  // 2. Find the index of the separator '::'
   const separatorIndex = input.indexOf(SEPARATOR, filePathStartIndex);
+  let tarPath;
+  let internalPath;
+
   if (separatorIndex === -1) {
-    throw new Error("Separator '::' not found after 'tar:'.");
+    tarPath = input.substring(filePathStartIndex, input.length - 1);
+    internalPath = "**";
+  } else {
+    tarPath = input.substring(filePathStartIndex, separatorIndex);
+    internalPath = input.substring(separatorIndex + SEPARATOR.length);
   }
-
-  // 3. Extract the text between 'tar:' and '::' (the file path)
-  const tarPath = input.substring(filePathStartIndex, separatorIndex);
-
-  // 4. Extract the text after '::' (the internal path)
-  const internalPath = input.substring(separatorIndex + SEPARATOR.length);
-
-  return { tarPath: tarPath, internalPath };
+  return { tarPath, internalPath };
 }
 
 /**
