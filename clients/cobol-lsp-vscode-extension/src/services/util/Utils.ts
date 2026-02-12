@@ -166,7 +166,7 @@ export function extractTarPath(input: string): {
   let internalPath;
 
   if (separatorIndex === -1) {
-    tarPath = input.substring(filePathStartIndex, input.length - 1);
+    tarPath = input.substring(filePathStartIndex, input.length);
     internalPath = "**";
   } else {
     tarPath = input.substring(filePathStartIndex, separatorIndex);
