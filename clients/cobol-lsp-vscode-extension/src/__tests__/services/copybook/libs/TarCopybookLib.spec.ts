@@ -132,6 +132,23 @@ describe("Tar copybook lib tests", () => {
         "DSN",
       );
     });
+    it("Default search pattern", () => {
+      expect(
+        TarCopybookLib.create({
+          locationType: "local",
+          tarFileLocation: "path/for/tar",
+        }),
+      ).toHaveProperty("searchPattern", "**");
+    });
+    it("Search pattern with value", () => {
+      expect(
+        TarCopybookLib.create({
+          locationType: "local",
+          tarFileLocation: "path/for/tar",
+          searchPattern: "searchingSomething",
+        }),
+      ).toHaveProperty("searchPattern", "searchingSomething");
+    });
   });
 
   describe("listCopybooks", () => {

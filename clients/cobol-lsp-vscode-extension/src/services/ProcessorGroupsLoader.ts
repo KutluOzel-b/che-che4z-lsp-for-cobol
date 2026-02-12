@@ -105,15 +105,16 @@ const TarConfigDSNandUSSModel = t.intersection([
   t.type({
     locationType: t.union([t.literal("DSN"), t.literal("USS")]),
     tarFileLocation: t.string,
-    searchPattern: t.string,
   }),
-  t.partial({ profile: t.string }),
+  t.partial({ profile: t.string, searchPattern: t.string }),
 ]);
-const TarConfigLocalModel = t.type({
-  locationType: t.literal("local"),
-  tarFileLocation: t.string,
-  searchPattern: t.string,
-});
+const TarConfigLocalModel = t.intersection([
+  t.type({
+    locationType: t.literal("local"),
+    tarFileLocation: t.string,
+  }),
+  t.partial({ searchPattern: t.string }),
+]);
 
 const TarConfigModel = t.union([TarConfigLocalModel, TarConfigDSNandUSSModel]);
 export type TarConfigModel = t.TypeOf<typeof TarConfigModel>;
