@@ -9,6 +9,7 @@ import { createZoweExplorerMock } from "../../../../__mocks__/getZoweExplorerMoc
 import { SettingsService } from "../../../../services/Settings";
 import { getTarCached, TarContent } from "../../../../services/util/TarUtil";
 import { CopybookBinaryDownloader } from "../../../../services/copybook/downloader/CopybookBinaryDownloader";
+import { CopybookDownloaderForDsn } from "../../../../services/copybook/downloader/CopybookDownloaderForDsn";
 
 const emitter_mock: vscode.EventEmitter<vscode.FileChangeEvent[]> = {
   dispose: jest.fn().mockResolvedValue({}),
@@ -110,6 +111,10 @@ describe("Tar copybook lib tests", () => {
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
       );
+      extApis.dsnService = new CopybookDownloaderForDsn();
+      extApis.dsnService.getAllMembers = jest
+        .fn()
+        .mockReturnValue(["path/for/tar"]);
       extApis.binaryDownloader.downloadFile = jest.fn();
       extApis.binaryDownloader.isPresentLocally = jest
         .fn()
@@ -148,6 +153,32 @@ describe("Tar copybook lib tests", () => {
           searchPattern: "searchingSomething",
         }),
       ).toHaveProperty("searchPattern", "searchingSomething");
+    });
+    it("variable provided in configuration resolves", async () => {
+      extApis.binaryDownloader = new CopybookBinaryDownloader(
+        vscode.Uri.file("/storage"),
+        createZoweExplorerMock(),
+      );
+
+      const result = await new TarCopybookLib(
+        "USS",
+        "${fileBasenameNoExtension}/path/for/tar",
+        "APPLDICT/EMPRPT/**",
+        tarCache,
+        "zeProfile",
+      ).resolveCopybookUri(
+        "DEPARTMENT",
+        vscode.Uri.file("/program.cbl"),
+        DEFAULT_DIALECT,
+      );
+      expect(result).toBeTruthy();
+      const expectedValue = vscode.Uri.from({
+        scheme: "cobol-ls-tar",
+        authority: "",
+        path: "/storage/tar/program/path/for/tar/::/APPLDICT/EMPRPT/RECORD/DEPARTMENT.CPY",
+      });
+      expect(result instanceof vscode.Uri).toBeTruthy();
+      expect((result as vscode.Uri).fsPath).toBe(expectedValue.fsPath);
     });
   });
 
