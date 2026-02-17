@@ -48,7 +48,7 @@ export class CopybookBinaryDownloader {
           binary: true,
           stream: passThrough,
         });
-      const content = new Uint8Array(Buffer.concat(chunks));
+      const content = Buffer.concat(chunks);
       await vscode.workspace.fs.writeFile(tarUri, content);
       return true;
     } catch (_error) {
