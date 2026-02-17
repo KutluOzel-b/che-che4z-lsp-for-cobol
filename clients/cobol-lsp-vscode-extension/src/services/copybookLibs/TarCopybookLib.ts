@@ -57,28 +57,12 @@ export class TarCopybookLib implements CopybookLib {
 
       if (!isAvailableAlready) {
         const profile = this.getProfile(documentUri);
-        if (this.locationType === "DSN") {
-          const members = await externalApis.dsnService?.getAllMembers(
-            profile,
-            this.tarFileLocation,
-          );
-          if (!members || !(members.length > 0)) return;
-        } else {
-          const members = await externalApis.ussService?.getAllMembers(
-            profile,
-            this.tarFileLocation,
-            [".tar", ".cobol-ls-tar", ""],
-          );
-          if (!members || !(members.length > 0)) return;
-        }
-        if (
-          !(await binaryDownloader.downloadFile(
-            evaluatedTarPath,
-            profile,
-            this.locationType,
-          ))
-        )
-          return;
+
+        await binaryDownloader.downloadFile(
+          evaluatedTarPath,
+          profile,
+          this.locationType,
+        );
       }
       if (!tarFileUri) return;
     }

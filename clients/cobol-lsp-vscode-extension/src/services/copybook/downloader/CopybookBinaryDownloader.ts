@@ -23,18 +23,22 @@ export class CopybookBinaryDownloader {
   public downloadFile(path: string, profile: string, type: "USS" | "DSN") {
     const loadedProfile = loadProfile(profile, this.explorerAPI);
     const tarUri = this.getTarFileUri(path);
-    if (type == "DSN")
-      return this.explorerAPI.getMvsApi(loadedProfile).getContents(path, {
-        file: tarUri.fsPath,
-        returnEtag: true,
-        binary: true,
-      });
-    else
-      return this.explorerAPI.getUssApi(loadedProfile).getContents(path, {
-        file: tarUri.fsPath,
-        returnEtag: true,
-        binary: true,
-      });
+    try {
+      if (type == "DSN")
+        return this.explorerAPI.getMvsApi(loadedProfile).getContents(path, {
+          file: tarUri.fsPath,
+          returnEtag: true,
+          binary: true,
+        });
+      else
+        return this.explorerAPI.getUssApi(loadedProfile).getContents(path, {
+          file: tarUri.fsPath,
+          returnEtag: true,
+          binary: true,
+        });
+    } catch (_error) {
+      return vscode.workspace.fs.delete(tarUri);
+    }
   }
 
   public getTarFileUri(filePath: string) {
