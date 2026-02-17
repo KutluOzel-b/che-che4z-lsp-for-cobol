@@ -9,7 +9,6 @@ import { createZoweExplorerMock } from "../../../../__mocks__/getZoweExplorerMoc
 import { SettingsService } from "../../../../services/Settings";
 import { getTarCached, TarContent } from "../../../../services/util/TarUtil";
 import { CopybookBinaryDownloader } from "../../../../services/copybook/downloader/CopybookBinaryDownloader";
-import { CopybookDownloaderForDsn } from "../../../../services/copybook/downloader/CopybookDownloaderForDsn";
 
 const emitter_mock: vscode.EventEmitter<vscode.FileChangeEvent[]> = {
   dispose: jest.fn().mockResolvedValue({}),
@@ -111,10 +110,6 @@ describe("Tar copybook lib tests", () => {
         vscode.Uri.file("/storage"),
         createZoweExplorerMock(),
       );
-      extApis.dsnService = new CopybookDownloaderForDsn();
-      extApis.dsnService.getAllMembers = jest
-        .fn()
-        .mockReturnValue(["path/for/tar"]);
       extApis.binaryDownloader.downloadFile = jest.fn();
       extApis.binaryDownloader.isPresentLocally = jest
         .fn()
