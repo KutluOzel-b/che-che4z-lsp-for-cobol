@@ -58,11 +58,14 @@ export class TarCopybookLib implements CopybookLib {
       if (!isAvailableAlready) {
         const profile = this.getProfile(documentUri);
 
-        await binaryDownloader.downloadFile(
-          evaluatedTarPath,
-          profile,
-          this.locationType,
-        );
+        if (
+          !(await binaryDownloader.downloadFile(
+            evaluatedTarPath,
+            profile,
+            this.locationType,
+          ))
+        )
+          return;
       }
       if (!tarFileUri) return;
     }

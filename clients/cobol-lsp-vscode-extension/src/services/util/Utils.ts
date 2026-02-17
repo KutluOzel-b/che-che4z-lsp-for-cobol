@@ -144,9 +144,9 @@ export function isTarPath(input: string) {
 }
 
 /**
- * Extracts the text between 'tar:' and '!' and the text after '!'
+ * Extracts the text between 'tar:' and '::' and the text after '::'
  * from a structured string.
- * @param input The string to process, e.g., 'tar:FILE_PATH!INTERNAL_PATH'
+ * @param input The string to process, e.g., 'tar:FILE_PATH::INTERNAL_PATH'
  * @returns An object containing the extracted file path and internal path.
  */
 export function extractTarPath(input: string): {

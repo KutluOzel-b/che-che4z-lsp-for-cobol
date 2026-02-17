@@ -11,6 +11,7 @@
  * Contributors:
  *   Broadcom, Inc. - initial API and implementation
  */
+import { PassThrough } from "stream";
 import { TAR_FOLDER } from "../../../constants";
 import { loadProfile } from "../../util/Utils";
 import * as vscode from "vscode";
@@ -20,24 +21,38 @@ export class CopybookBinaryDownloader {
     private storagePath: vscode.Uri,
     private explorerAPI: IApiRegisterClient,
   ) {}
-  public downloadFile(path: string, profile: string, type: "USS" | "DSN") {
+  public async downloadFile(
+    path: string,
+    profile: string,
+    type: "USS" | "DSN",
+  ): Promise<boolean> {
     const loadedProfile = loadProfile(profile, this.explorerAPI);
     const tarUri = this.getTarFileUri(path);
     try {
-      if (type == "DSN")
-        return this.explorerAPI.getMvsApi(loadedProfile).getContents(path, {
-          file: tarUri.fsPath,
+      const passThrough = new PassThrough();
+      const chunks: Buffer[] = [];
+
+      passThrough.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      if (type == "DSN") {
+        await this.explorerAPI.getMvsApi(loadedProfile).getContents(path, {
           returnEtag: true,
           binary: true,
+          stream: passThrough,
         });
-      else
-        return this.explorerAPI.getUssApi(loadedProfile).getContents(path, {
-          file: tarUri.fsPath,
+      } else
+        await this.explorerAPI.getUssApi(loadedProfile).getContents(path, {
           returnEtag: true,
           binary: true,
+          stream: passThrough,
         });
+      const content = new Uint8Array(Buffer.concat(chunks));
+      await vscode.workspace.fs.writeFile(tarUri, content);
+      return true;
     } catch (_error) {
-      return vscode.workspace.fs.delete(tarUri);
+      return false;
     }
   }
 
