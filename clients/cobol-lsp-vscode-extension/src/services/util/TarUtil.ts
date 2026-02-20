@@ -16,7 +16,16 @@ export async function readTarFile(
     const links: { name: string; linkname: string }[] = [];
     const extract = tar.extract();
     const ebcdicRef: refBool = { value: undefined };
-
+    const rootHeader: tar.Headers = { name: "/" };
+    handleDirectory(
+      result,
+      rootHeader,
+      emitter,
+      tarFileUri,
+      () => (_error?: unknown) => {
+        return;
+      },
+    );
     extract.on("entry", (header, stream, next) => {
       if (header.type === "file") {
         handleFile(

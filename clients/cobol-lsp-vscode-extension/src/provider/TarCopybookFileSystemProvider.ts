@@ -65,6 +65,7 @@ export class TarCopybookFileSystemProvider
     }
     const result: [string, vscode.FileType][] = [];
     if (
+      directory != "/" &&
       !tarContent.find(
         (x) =>
           x.fileData.fileMetadata.type === vscode.FileType.Directory &&
@@ -138,9 +139,12 @@ export class TarCopybookFileSystemProvider
       throw vscode.FileSystemError.FileNotFound(
         "Need searchPath to locate file",
       );
-    const matchingFiles = tarContent.filter(
-      (e) => e.fileName.toUpperCase() === filePath.toUpperCase(),
-    );
+    const matchingFiles =
+      filePath == "/"
+        ? this.getOneLevelChildren(tarContent, filePath)
+        : tarContent.filter(
+            (e) => e.fileName.toUpperCase() === filePath.toUpperCase(),
+          );
     return matchingFiles;
   }
 

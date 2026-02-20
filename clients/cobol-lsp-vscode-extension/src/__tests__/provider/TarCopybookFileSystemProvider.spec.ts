@@ -114,6 +114,25 @@ describe("TarCopybookFileSystemProvider", () => {
       const entries = await provider.readDirectory(directory);
       expect(entries.length).toBe(0);
     });
+    test("Stat root directory does not throws", async () => {
+      const directory = vscode.Uri.from({
+        path: vscode.Uri.joinPath(testFileSymUri, "::", "/").path,
+        scheme: testFileUri.scheme,
+      });
+      const entries = await provider.stat(directory);
+      expect(entries.size).toBeGreaterThan(0);
+    });
+    test("Reading the root directory does not throws & serves first level contents", async () => {
+      const directory = vscode.Uri.from({
+        path: vscode.Uri.joinPath(testFileSymUri, "::", "/").path,
+        scheme: testFileUri.scheme,
+      });
+      const entries = await provider.readDirectory(directory);
+      expect(entries).toEqual([
+        ["._APPLDICT", 1],
+        ["APPLDICT", 2],
+      ]);
+    });
   });
 
   describe("readFile", () => {
