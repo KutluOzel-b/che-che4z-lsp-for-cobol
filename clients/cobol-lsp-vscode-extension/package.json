@@ -33,7 +33,8 @@
     "Programming Languages"
   ],
   "activationEvents": [
-    "onLanguage:cobol"
+    "onLanguage:cobol",
+    "onFileSystem:cobol-ls-tar"
   ],
   "icon": "resources/logo.png",
   "main": "./dist/extension.js",
