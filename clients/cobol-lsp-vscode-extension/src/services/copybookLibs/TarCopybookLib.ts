@@ -197,7 +197,6 @@ export class TarCopybookLib implements CopybookLib {
 
       switch (evaluatedPattern.at(-1)) {
         case "/":
-        case "*":
           evaluatedPattern = evaluatedPattern.concat("*");
           break;
         case undefined:

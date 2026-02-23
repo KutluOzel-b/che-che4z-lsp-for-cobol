@@ -50,7 +50,7 @@ describe("Tar copybook lib tests", () => {
     const dsnTarLib = new TarCopybookLib(
       "DSN",
       "path/for/tar",
-      "APPLDICT/EMPRPT/*",
+      "APPLDICT/EMPRPT/**",
       tarCache,
       "zeProfile",
     );
@@ -92,7 +92,7 @@ describe("Tar copybook lib tests", () => {
       const localTarLib = new TarCopybookLib(
         "local",
         "path/for/tar",
-        "APPLDICT/EMPRPT/*",
+        "APPLDICT/EMPRPT/**",
         getTarCached(emitter_mock),
         "zeProfile",
       );
@@ -117,7 +117,7 @@ describe("Tar copybook lib tests", () => {
       const dsnTarLib = new TarCopybookLib(
         "DSN",
         "path/for/tar",
-        "APPLDICT/EMPRPT/*",
+        "APPLDICT/EMPRPT/**",
         tarCache,
         "zeProfile",
       );
@@ -158,7 +158,7 @@ describe("Tar copybook lib tests", () => {
       const result = await new TarCopybookLib(
         "USS",
         "${fileBasenameNoExtension}/path/for/tar",
-        "APPLDICT/EMPRPT/*",
+        "APPLDICT/EMPRPT/**",
         tarCache,
         "zeProfile",
       ).resolveCopybookUri(
@@ -190,7 +190,7 @@ describe("Tar copybook lib tests", () => {
       const dsnTarLib = new TarCopybookLib(
         "DSN",
         "path/for/tar",
-        "APPLDICT/EMPRPT/*",
+        "APPLDICT/EMPRPT/**",
         tarCache,
         "zeProfile",
       );
