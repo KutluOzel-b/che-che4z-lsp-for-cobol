@@ -9,25 +9,19 @@ import {
   TarCopybookFileSystemProvider,
 } from "../../provider/TarCopybookFileSystemProvider";
 import { SettingsService } from "../Settings";
-import { getVariablesFromUri } from "../util/FSUtils";
+import { getVariablesFromUri, SupportedVariables } from "../util/FSUtils";
 import { Minimatch } from "minimatch";
 import { TarContent } from "../util/TarUtil";
 import { Memoize } from "../util/Memoize";
 
 export class TarCopybookLib implements CopybookLib {
-  private matcher: Minimatch;
   constructor(
     private locationType: "DSN" | "USS" | "local",
     private tarFileLocation: string,
-    private searchPattern: string,
+    private folderPattern: string,
     private tarCache?: Memoize<[tarFileUri: vscode.Uri], TarContent[]>,
     private profile?: string,
-  ) {
-    this.matcher = new Minimatch(vscode.Uri.file(this.searchPattern).path, {
-      nocase: true,
-      dot: true,
-    });
-  }
+  ) {}
 
   async resolveCopybookUri(
     copybookName: string,
@@ -70,17 +64,12 @@ export class TarCopybookLib implements CopybookLib {
       if (!tarFileUri) return;
     }
 
-    if (this.searchPattern) {
-      this.searchPattern = SettingsService.evaluateVariables(
-        this.searchPattern,
-        variables,
-      );
-    }
     const matchingFilePath = await this.findMatchingFile(
       tarFileUri,
       dialect,
       documentUri,
       copybookName,
+      this.createMatcher(variables),
     );
     if (matchingFilePath) {
       return matchingFilePath;
@@ -113,17 +102,12 @@ export class TarCopybookLib implements CopybookLib {
         return [];
       }
     }
-    if (this.searchPattern) {
-      this.searchPattern = SettingsService.evaluateVariables(
-        this.searchPattern,
-        variables,
-      );
-    }
+    const matcher = this.createMatcher(variables);
 
     const allFiles = await this.tarCache?.execute(tarFileUri);
     if (!allFiles || allFiles.length < 1) return [];
     const matchingFiles = allFiles.filter((e) => {
-      return this.matcher.match(e.fileName);
+      return matcher.match(e.fileName);
     });
     return matchingFiles.map((x) => this.getFilenameFromPath(x.fileName));
   }
@@ -142,14 +126,14 @@ export class TarCopybookLib implements CopybookLib {
         return new TarCopybookLib(
           config["locationType"],
           config["tarFileLocation"],
-          config["searchPattern"] ?? "**",
+          config["folderPattern"] ?? "**",
           externalApis.tarCache,
           config["profile"],
         );
       return new TarCopybookLib(
         config["locationType"],
         config["tarFileLocation"],
-        config["searchPattern"] ?? "**",
+        config["folderPattern"] ?? "**",
         externalApis.tarCache,
       );
     }
@@ -160,12 +144,13 @@ export class TarCopybookLib implements CopybookLib {
     dialect: string,
     documentUri: Uri,
     copybookName: string,
+    matcher: Minimatch,
   ) {
     const allFiles = await this.tarCache?.execute(tarFileUri);
     if (!allFiles || allFiles.length < 1) return;
 
     const matchingFiles = allFiles.filter((e) => {
-      return this.matcher.match(e.fileName);
+      return matcher.match(e.fileName);
     });
     const allowedExtensions = await SettingsService.getCopybookExtension(
       documentUri,
@@ -201,5 +186,31 @@ export class TarCopybookLib implements CopybookLib {
     return withExtension
       ? filename
       : filename.substring(0, filename.indexOf("."));
+  }
+  private createMatcher(variables: SupportedVariables) {
+    let evaluatedPattern;
+    if (this.folderPattern) {
+      evaluatedPattern = SettingsService.evaluateVariables(
+        this.folderPattern,
+        variables,
+      );
+
+      switch (evaluatedPattern.at(-1)) {
+        case "/":
+        case "*":
+          evaluatedPattern = evaluatedPattern.concat("*");
+          break;
+        case undefined:
+          evaluatedPattern = "**";
+          break;
+        default:
+          evaluatedPattern = evaluatedPattern.concat("/*");
+          break;
+      }
+    }
+    return new Minimatch(vscode.Uri.file(evaluatedPattern ?? "**").path, {
+      nocase: true,
+      dot: true,
+    });
   }
 }

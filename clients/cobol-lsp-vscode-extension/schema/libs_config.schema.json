@@ -80,7 +80,7 @@
             "type": "string",
             "description": "Path of the TAR file located locally on the current machine"
           },
-          "searchPattern": {
+          "folderPattern": {
             "type": "string",
             "description": "Path or wildcard pattern of folders within the TAR file to search for copybooks",
             "default": "**"
@@ -100,7 +100,7 @@
             "type": "string",
             "description": "Data set name or USS directory path of the TAR file"
           },
-          "searchPattern": {
+          "folderPattern": {
             "type": "string",
             "description": "Path or wildcard pattern of folders within the TAR file to search for copybooks",
             "default": "**"

@@ -106,14 +106,14 @@ const TarConfigDSNandUSSModel = t.intersection([
     locationType: t.union([t.literal("DSN"), t.literal("USS")]),
     tarFileLocation: t.string,
   }),
-  t.partial({ profile: t.string, searchPattern: t.string }),
+  t.partial({ profile: t.string, folderPattern: t.string }),
 ]);
 const TarConfigLocalModel = t.intersection([
   t.type({
     locationType: t.literal("local"),
     tarFileLocation: t.string,
   }),
-  t.partial({ searchPattern: t.string }),
+  t.partial({ folderPattern: t.string }),
 ]);
 
 const TarConfigModel = t.union([TarConfigLocalModel, TarConfigDSNandUSSModel]);
@@ -272,7 +272,7 @@ export function readSettingConfig(dialectType: string): ProcessorGroup {
         return TarConfigLocalModel.encode({
           locationType: "local",
           tarFileLocation: tarPath,
-          searchPattern: internalPath,
+          folderPattern: internalPath,
         });
       }
       return localPath;
@@ -287,7 +287,7 @@ export function readSettingConfig(dialectType: string): ProcessorGroup {
         return {
           locationType: "DSN",
           tarFileLocation: tarPath,
-          searchPattern: internalPath,
+          folderPattern: internalPath,
         };
       }
       return { dataset: dsn };
@@ -302,7 +302,7 @@ export function readSettingConfig(dialectType: string): ProcessorGroup {
         return {
           locationType: "USS",
           tarFileLocation: tarPath,
-          searchPattern: internalPath,
+          folderPattern: internalPath,
         };
       }
       return uss;
