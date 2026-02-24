@@ -195,15 +195,17 @@ export class TarCopybookLib implements CopybookLib {
         variables,
       );
 
-      switch (evaluatedPattern.at(-1)) {
-        case "/":
-          evaluatedPattern = evaluatedPattern.concat("*");
+      switch (true) {
+        case evaluatedPattern.endsWith("/**"):
           break;
-        case undefined:
-          evaluatedPattern = "**";
+        case evaluatedPattern.endsWith("/*"):
+          evaluatedPattern = `${evaluatedPattern}/*`;
+          break;
+        case evaluatedPattern.endsWith("/"):
+          evaluatedPattern = `${evaluatedPattern}*`;
           break;
         default:
-          evaluatedPattern = evaluatedPattern.concat("/*");
+          evaluatedPattern = `${evaluatedPattern}/*`;
           break;
       }
     }
