@@ -135,12 +135,12 @@ export function asArray<T>(input: T | T[]): T[] {
 }
 
 /**
- * Checks if a passed path is a tar file location i.e. it starts with 'tar:'
- * @param input The string to process, e.g., 'tar:FILE_PATH!INTERNAL_PATH'
+ * Checks if a passed path is a tar file location i.e. it starts with 'tar:' case insensitively
+ * @param input The string to process, e.g., 'tar:FILE_PATH::INTERNAL_PATH'
  * @returns a boolean indicating if the specified path is a tar file location
  */
 export function isTarPath(input: string) {
-  return input.startsWith(TAR_PREFIX);
+  return input.toUpperCase().startsWith(TAR_PREFIX);
 }
 
 /**
@@ -154,7 +154,7 @@ export function extractTarPath(input: string): {
   internalPath: string;
 } {
   // 1. Find the start index for the file path (after 'tar:')
-  const tarPrefixIndex = input.indexOf(TAR_PREFIX);
+  const tarPrefixIndex = input.toUpperCase().indexOf(TAR_PREFIX);
   if (tarPrefixIndex != 0) {
     throw new Error("String must start with 'tar:'.");
   }

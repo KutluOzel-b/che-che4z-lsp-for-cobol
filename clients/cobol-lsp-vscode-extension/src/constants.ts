@@ -101,4 +101,4 @@ export enum PUNCH_CARD {
   IDENTIFICATION_AREA_END_POS = 80,
 }
 
-export const TAR_PREFIX = "tar:";
+export const TAR_PREFIX = "TAR:";

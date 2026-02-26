@@ -25,6 +25,7 @@ import {
 } from "../../../../__mocks__/vscode";
 import { DEFAULT_DIALECT } from "../../../../constants";
 import { loadProcessorGroupCopybooksLibs } from "../../../../services/ProcessorGroups";
+import { TarCopybookLib } from "../../../../services/copybookLibs/TarCopybookLib";
 
 describe("Local copybook library", () => {
   beforeEach(async () => {
@@ -211,7 +212,10 @@ describe("Local copybook library", () => {
 
       beforeEach(() => {
         getConfigurationResult["copybook-extensions"] = [".cpa"];
-        getConfigurationResult["paths-local"] = ["a"];
+        getConfigurationResult["paths-local"] = [
+          "a",
+          "tar:filePath/path::internalPath",
+        ];
         getWorkspaceFolderResult.uri = WORKSPACE_URI;
         readFileResult[`${WORKSPACE_PATH}/.cobolplugin/proc_grps.json`] = `{
           "pgroups": [
@@ -263,8 +267,17 @@ describe("Local copybook library", () => {
           document,
           DEFAULT_DIALECT,
         );
-
         expect(result).toEqual(vscode.Uri.file(`${WORKSPACE_PATH}/a/COPY.cpa`));
+      });
+      it("vscode settings extension configuration has capital tar scheme correctly resolves", async () => {
+        const document = vscode.Uri.file("/NOPG.cob");
+        const libs = await loadProcessorGroupCopybooksLibs(
+          document,
+          DEFAULT_DIALECT,
+        );
+        expect(libs[1]).toBeInstanceOf(TarCopybookLib);
+        expect(libs[1]).toHaveProperty("tarFileLocation", "filePath/path");
+        expect(libs[1]).toHaveProperty("folderPattern", "internalPath");
       });
 
       it("uses processor group extension configuration", async () => {
