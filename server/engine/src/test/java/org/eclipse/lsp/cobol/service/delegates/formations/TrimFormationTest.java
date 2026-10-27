@@ -64,4 +64,14 @@ class TrimFormationTest {
       assertEquals(0, format.get(i).getRange().getStart().getCharacter());
     }
   }
+
+  @Test
+  void whenLineIsContinued_thenItsTrailingSpacesAreKept() {
+    TrimFormation trimFormation = new TrimFormation();
+    CobolDocumentModel model =
+        new CobolDocumentModel("", "       MOVE 'ABC   \n      -    'DEF' TO X.  ");
+    List<TextEdit> format = trimFormation.format(model.getLines(), ImmutableList.of());
+    assertEquals(1, format.size());
+    assertEquals(1, format.get(0).getRange().getStart().getLine());
+  }
 }

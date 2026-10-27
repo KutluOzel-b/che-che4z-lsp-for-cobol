@@ -26,6 +26,7 @@ import org.eclipse.lsp4j.TextEdit;
 public class TrimFormation implements Formation {
 
   private static final Pattern RTRIM = Pattern.compile("\\s+$");
+  private static final int CONTINUATION_INDICATOR = 6;
 
   private static String rtrim(String s) {
     return RTRIM.matcher(s).replaceAll("");
@@ -35,11 +36,21 @@ public class TrimFormation implements Formation {
   public List<TextEdit> format(
       @NonNull List<CobolDocumentModel.Line> lines, List<String> settings) {
     List<TextEdit> formattedText = new ArrayList<>();
-    for (CobolDocumentModel.Line line : lines) {
+    for (int i = 0; i < lines.size(); i++) {
+      CobolDocumentModel.Line line = lines.get(i);
+      // trailing spaces of a literal continued on the next line are part of the literal
+      if (i + 1 < lines.size() && isContinuationLine(lines.get(i + 1).getText())) {
+        continue;
+      }
       String newText = rtrim(line.getText());
       formattedText.add(addNewTextEditLine(line, newText));
     }
     return formattedText;
+  }
+
+  private static boolean isContinuationLine(String text) {
+    return text.length() > CONTINUATION_INDICATOR
+        && text.charAt(CONTINUATION_INDICATOR) == '-';
   }
 
   private static TextEdit addNewTextEditLine(CobolDocumentModel.Line line, String text) {

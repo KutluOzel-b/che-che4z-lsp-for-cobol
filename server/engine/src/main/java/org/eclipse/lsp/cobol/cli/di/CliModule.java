@@ -67,6 +67,7 @@ import org.eclipse.lsp.cobol.service.delegates.completions.*;
 import org.eclipse.lsp.cobol.service.delegates.formations.CapitalFormation;
 import org.eclipse.lsp.cobol.service.delegates.formations.Formation;
 import org.eclipse.lsp.cobol.service.delegates.formations.Formations;
+import org.eclipse.lsp.cobol.service.delegates.formations.LayoutFormation;
 import org.eclipse.lsp.cobol.service.delegates.formations.TrimFormation;
 import org.eclipse.lsp.cobol.service.delegates.hover.DefinedAndUsedStructureHoverProvider;
 import org.eclipse.lsp.cobol.service.delegates.hover.HoverProvider;
@@ -141,6 +142,7 @@ public class CliModule extends AbstractModule {
   private void bindFormations() {
     bind(Formations.class);
     Multibinder<Formation> formationBinding = newSetBinder(binder(), Formation.class);
+    formationBinding.addBinding().to(LayoutFormation.class);
     formationBinding.addBinding().to(TrimFormation.class);
     formationBinding.addBinding().to(CapitalFormation.class);
   }

@@ -12,55 +12,92 @@
  *    Broadcom - initial API and implementation
  *
  */
-
 package org.eclipse.lsp.cobol.service.delegates.formations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp.cobol.service.CobolDocumentModel;
 import org.eclipse.lsp.cobol.service.settings.SettingsService;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextEdit;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** Test {@link Formations} class */
 class FormationsTest {
 
-  private static final Formation FORMATION_1 = mock(Formation.class);
-  private static final Formation FORMATION_2 = mock(Formation.class);
-  private static final SettingsService SETTINGS_SERVICE = mock(SettingsService.class);
-  private static final Formations FORMATIONS =
-      new Formations(ImmutableSet.of(FORMATION_1, FORMATION_2), SETTINGS_SERVICE);
+  private static Formations formations(SettingsService settings, Formation... formations) {
+    return new Formations(ImmutableSet.copyOf(formations), settings);
+  }
 
-  @BeforeEach
-  void init() {
-    when(SETTINGS_SERVICE.fetchConfiguration(anyString()))
-        .thenReturn(CompletableFuture.completedFuture(ImmutableList.of()));
+  private static SettingsService settings(Object... values) {
+    SettingsService service = mock(SettingsService.class);
+    when(service.fetchConfigurations(anyList()))
+        .thenReturn(CompletableFuture.completedFuture(ImmutableList.copyOf(values)));
+    return service;
   }
 
   @Test
   void WhenCobolDocumentModelNull_thenFormatReturnsEmptyList() {
-    List<TextEdit> format = FORMATIONS.format(null);
+    List<TextEdit> format = formations(settings()).format(null);
     assertEquals(0, format.size());
   }
 
   @Test
-  void WhenCobolDocumentModelNonNull_thenFormatReturnsFormattedString() {
+  void whenFormationsAreChained_thenEachWorksOnThePreviousResult() {
+    CobolDocumentModel model = new CobolDocumentModel("", "AAA\nBBB\nCCC");
+    // replaces the second line, then the next formation sees the replaced text
+    Formation first =
+        (lines, settings) ->
+            ImmutableList.of(
+                new TextEdit(new Range(new Position(1, 0), new Position(1, 3)), "XYZ"));
+    Formation second =
+        (lines, settings) -> {
+          assertEquals("XYZ", lines.get(1).getText());
+          return ImmutableList.of(
+              new TextEdit(new Range(new Position(1, 1), new Position(1, 2)), "-"));
+        };
+
+    List<TextEdit> edits = formations(settings(), first, second).format(model);
+
+    assertEquals(
+        ImmutableList.of(new TextEdit(new Range(new Position(1, 0), new Position(1, 3)), "X-Z")),
+        edits);
+  }
+
+  @Test
+  void whenSettingsAreFetched_thenBothSectionsArePassedAsJson() {
+    CobolDocumentModel model = new CobolDocumentModel("", "TEXT");
+    JsonObject formatter = new JsonObject();
+    formatter.addProperty("indentWidth", 2);
+    Formation formation =
+        (lines, settings) -> {
+          assertEquals(ImmutableList.of("\"Uppercase\"", "{\"indentWidth\":2}"), settings);
+          return ImmutableList.of();
+        };
+
+    List<TextEdit> edits =
+        formations(settings(new JsonPrimitive("Uppercase"), formatter), formation).format(model);
+
+    assertEquals(0, edits.size());
+  }
+
+  @Test
+  void whenNothingChanges_thenNoEdits() {
     CobolDocumentModel model = new CobolDocumentModel("", "SAMPLE TEXT FOR TEST");
-    List<TextEdit> response1 = ImmutableList.of(new TextEdit());
-    List<TextEdit> response2 = ImmutableList.of(new TextEdit(), new TextEdit());
-    when(FORMATION_1.format(anyList(), anyList())).thenReturn(response1);
-    when(FORMATION_2.format(anyList(), anyList())).thenReturn(response2);
-    List<TextEdit> format = FORMATIONS.format(model);
-    // expect a flattened list of 2 responses.
-    assertEquals(3, format.size());
+    Formation formation =
+        (lines, settings) ->
+            ImmutableList.of(
+                new TextEdit(new Range(new Position(0, 0), new Position(0, 6)), "SAMPLE"));
+    assertEquals(0, formations(settings(), formation).format(model).size());
   }
 }

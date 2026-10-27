@@ -51,6 +51,7 @@ import org.eclipse.lsp.cobol.service.delegates.completions.*;
 import org.eclipse.lsp.cobol.service.delegates.formations.CapitalFormation;
 import org.eclipse.lsp.cobol.service.delegates.formations.Formation;
 import org.eclipse.lsp.cobol.service.delegates.formations.Formations;
+import org.eclipse.lsp.cobol.service.delegates.formations.LayoutFormation;
 import org.eclipse.lsp.cobol.service.delegates.formations.TrimFormation;
 import org.eclipse.lsp.cobol.service.delegates.hover.CopybookHoverProvider;
 import org.eclipse.lsp.cobol.service.delegates.hover.DefinedAndUsedStructureHoverProvider;
@@ -116,6 +117,7 @@ public class ServiceModule extends AbstractModule {
   private void bindFormations() {
     bind(Formations.class);
     Multibinder<Formation> formationBinding = newSetBinder(binder(), Formation.class);
+    formationBinding.addBinding().to(LayoutFormation.class);
     formationBinding.addBinding().to(TrimFormation.class);
     formationBinding.addBinding().to(CapitalFormation.class);
   }

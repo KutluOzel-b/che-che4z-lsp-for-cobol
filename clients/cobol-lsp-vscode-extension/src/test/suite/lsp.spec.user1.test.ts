@@ -167,6 +167,9 @@ suite("Tests with USER1.cbl", function () {
     await vscode.workspace
       .getConfiguration()
       .update("cobol-lsp.formatting", "None");
+    await vscode.workspace
+      .getConfiguration()
+      .update("cobol-lsp.formatter.enabled", false);
     const result = await vscode.commands.executeCommand<vscode.TextEdit[]>(
       "vscode.executeFormatDocumentProvider",
       editor.document.uri,

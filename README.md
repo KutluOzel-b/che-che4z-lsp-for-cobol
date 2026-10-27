@@ -134,6 +134,27 @@ The following example sets tab stops after columns 1, 2, 3 and 4 after the line 
     }
     ```
 
+### Configure Code Formatting
+
+Use **Format Document** (`Shift+Alt+F`) to lay out a COBOL program. The formatter moves division, section and paragraph headers to Area A, indents nested statements (`IF`, `EVALUATE`, inline `PERFORM`, `AT END` and similar phrases) and subordinate data items, aligns data description clauses and normalizes the spacing and the quotes of literals. It does not change the meaning of the program: continued literals, compiler directives and the content of `EXEC` blocks, `COPY` and `REPLACE` statements are kept as they are, and a line which no longer fits before column 73 is wrapped or kept unchanged.
+
+Configure the formatter with the following settings:
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `cobol-lsp.formatter.enabled` | `true` | Lay out the code. When disabled, formatting only removes trailing spaces and applies `cobol-lsp.formatting`. |
+| `cobol-lsp.formatter.sourceFormat` | `fixed` | `fixed` or `free` reference format. |
+| `cobol-lsp.formatter.singleQuote` | `true` | Delimit literals with `'`. When `false`, `"` is used. |
+| `cobol-lsp.formatter.indentWidth` | `4` | Number of columns per nesting level. |
+| `cobol-lsp.formatter.useTabs` | `false` | Indent with tabs. Only applies to the `free` format. |
+| `cobol-lsp.formatter.dataDivision.alignPicClauses` | `true` | Align the `PICTURE` clauses of a record. |
+| `cobol-lsp.formatter.dataDivision.alignValueClauses` | `true` | Align the `VALUE` clauses of a record. |
+| `cobol-lsp.formatter.dataDivision.alignUsageClauses` | `true` | Align the `USAGE` clauses (`COMP`, `COMP-3`, `BINARY`, ...) of a record. |
+| `cobol-lsp.formatter.standalonePeriods` | `false` | Move the periods ending procedure division sentences to their own line. |
+| `cobol-lsp.formatter.requireScopeTerminators` | `false` | Reserved, not applied yet. |
+| `cobol-lsp.formatter.spaceBeforePunctuation` | `false` | Write `MOVE A TO B , C .` instead of `MOVE A TO B, C.` |
+| `cobol-lsp.formatter.preserveSequenceNumbers` | `true` | Keep columns 1-6 and 73-80. When `false`, both areas are cleared. |
+
 ### Configure Dialect Add-ons
 
 Many companies have their own COBOL preprocessors which complement or modify standard IBM enterprise COBOL with custom statements and keywords. In our documentation, we refer to these preprocessors as "dialects".
