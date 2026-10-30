@@ -387,6 +387,54 @@ class LayoutStyleDetectorTest {
   }
 
   @Test
+  void smallRecordsLearnValueSpacingFromTheSection() {
+    List<String> source =
+        Arrays.asList(
+            "       DATA DIVISION.",
+            "       WORKING-STORAGE SECTION.",
+            "       01  URI-MAP.",
+            "           02  URI-PREFIX         PIC  X(04) VALUE     SPACES.",
+            "           02  URI-SUFFIX         PIC  X(04) VALUE SPACES.",
+            "",
+            "       01  TD-RECORD.",
+            "           02  FILLER             PIC  X(13) VALUE 'zECS start ZX'.",
+            "           02  TD-SUFFIX          PIC  X(02) VALUE SPACES.",
+            "           02  FILLER             PIC  X(01) VALUE     SPACES.",
+            "           02  TD-TRAN            PIC  X(04) VALUE SPACES.");
+    List<String> expected = new java.util.ArrayList<>(source);
+    expected.set(3, source.get(3).replace("VALUE     ", "VALUE "));
+    expected.set(9, source.get(9).replace("VALUE     ", "VALUE "));
+    List<String> formatted =
+        new CobolLayoutFormatter(LayoutSettings.fromJson(null, source)).format(source);
+    assertEquals(expected, formatted);
+    assertEquals(
+        formatted,
+        new CobolLayoutFormatter(LayoutSettings.fromJson(null, formatted)).format(formatted));
+  }
+
+  @Test
+  void sectionValueSpacingDoesNotOverrideLocalPreferencesOrClauseColumns() {
+    List<String> source =
+        Arrays.asList(
+            "       DATA DIVISION.",
+            "       WORKING-STORAGE SECTION.",
+            "       01 FIRST-RECORD.",
+            "           05 A             PIC X VALUE SPACE.",
+            "           05 B             PIC X VALUE SPACE.",
+            "           05 C             PIC X VALUE SPACE.",
+            "       01 SECOND-RECORD.",
+            "           05 A                       PIC X VALUE   SPACE.",
+            "           05 B                       PIC X VALUE   SPACE.",
+            "       01 THIRD-RECORD.",
+            "           05 A                  PIC X VALUE SPACE.",
+            "       LINKAGE SECTION.",
+            "       01 FOURTH-RECORD.",
+            "           05 A             PIC X VALUE     SPACE.");
+    assertEquals(
+        source, new CobolLayoutFormatter(LayoutSettings.fromJson(null, source)).format(source));
+  }
+
+  @Test
   void differentRecordsKeepTheirOwnPictureColumns() {
     List<String> source =
         Arrays.asList(

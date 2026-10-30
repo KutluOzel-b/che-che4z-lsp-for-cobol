@@ -48,7 +48,7 @@ final class HorizontalLayout {
         select = true;
       } else if (Keywords.FILE_DESCRIPTIONS.contains(first)
           || Keywords.levelNumber(line.getWords().get(0)) == 1) {
-        current = new Profile(null);
+        current = new Profile(null, section);
       }
       profiles.put(line, current);
       observe(line, current);
@@ -146,11 +146,17 @@ final class HorizontalLayout {
 
   private static final class Profile {
     private final Profile parent;
+    private final Profile clauseGaps;
     private final Map<String, Column> columns = new HashMap<>();
     private final Map<String, Votes> gaps = new HashMap<>();
 
     private Profile(Profile parent) {
+      this(parent, null);
+    }
+
+    private Profile(Profile parent, Profile clauseGaps) {
       this.parent = parent;
+      this.clauseGaps = clauseGaps;
     }
 
     private void observeColumn(String key, int at, int prefix, int gap) {
@@ -165,6 +171,9 @@ final class HorizontalLayout {
       if (parent != null) {
         parent.observeGap(key, gap);
       }
+      if (clauseGaps != null && key.contains(":AFTER:")) {
+        clauseGaps.observeGap(key, gap);
+      }
     }
 
     private Integer column(String key) {
@@ -176,7 +185,11 @@ final class HorizontalLayout {
     private Integer gap(String key) {
       Votes votes = gaps.get(key);
       Integer value = votes == null ? null : votes.preferred();
-      return value != null || parent == null ? value : parent.gap(key);
+      if (value != null || parent != null) {
+        return value != null ? value : parent.gap(key);
+      }
+      // Small records can borrow clause operand spacing without borrowing alignment columns.
+      return clauseGaps != null && key.contains(":AFTER:") ? clauseGaps.gap(key) : null;
     }
   }
 
