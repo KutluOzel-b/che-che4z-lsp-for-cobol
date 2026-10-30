@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.NonNull;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp.cobol.service.CobolDocumentModel;
 import org.eclipse.lsp4j.TextEdit;
 import org.junit.jupiter.api.Assertions;
@@ -73,5 +74,22 @@ class TrimFormationTest {
     List<TextEdit> format = trimFormation.format(model.getLines(), ImmutableList.of());
     assertEquals(1, format.size());
     assertEquals(1, format.get(0).getRange().getStart().getLine());
+  }
+
+  @Test
+  void whenFixedWidthPaddingIsEstablished_thenItIsKept() {
+    String source =
+        StringUtils.rightPad("       PROCEDURE DIVISION.", 80)
+            + "\n"
+            + StringUtils.rightPad("           DISPLAY 'hello'.", 80)
+            + "\n"
+            + StringUtils.repeat(' ', 80);
+    CobolDocumentModel model = new CobolDocumentModel("", source);
+    assertEquals(0, new TrimFormation().format(model.getLines(), ImmutableList.of()).size());
+    assertEquals(
+        3,
+        new TrimFormation()
+            .format(model.getLines(), ImmutableList.of("\"None\"", "{\"enabled\":false}"))
+            .size());
   }
 }

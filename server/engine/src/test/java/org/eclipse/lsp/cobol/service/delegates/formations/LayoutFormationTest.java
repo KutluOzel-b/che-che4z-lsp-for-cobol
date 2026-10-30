@@ -46,9 +46,102 @@ class LayoutFormationTest {
   }
 
   @Test
+  void whenSettingsAreMissing_thenDocumentStyleIsLearned() {
+    List<CobolDocumentModel.Line> lines =
+        new CobolDocumentModel(
+                "", "PROCEDURE DIVISION.\n  IF A = B\n    DISPLAY    \"hello\"\n  END-IF.")
+            .getLines();
+    List<TextEdit> edits = new LayoutFormation().format(lines, ImmutableList.of("\"None\""));
+    assertEquals(
+        ImmutableList.of(
+            "PROCEDURE DIVISION.", "  IF A = B", "    DISPLAY    \"hello\"", "  END-IF."),
+        FormationEdits.apply(
+            lines.stream()
+                .map(CobolDocumentModel.Line::getText)
+                .collect(java.util.stream.Collectors.toList()),
+            edits));
+  }
+
+  @Test
   void whenDisabled_thenNothingIsChanged() {
     List<TextEdit> edits =
         new LayoutFormation().format(LINES, ImmutableList.of("\"None\"", "{\"enabled\":false}"));
     assertEquals(0, edits.size());
+  }
+
+  @Test
+  void whenRequiredAreaAEntriesAreInAreaB_thenTheirPositionsAreCorrected() {
+    List<String> source =
+        java.util.Arrays.asList(
+            "           IDENTIFICATION DIVISION.",
+            "       PROGRAM-ID. EXAMPLE.",
+            "           DATA DIVISION.",
+            "           FILE SECTION.",
+            "               FD  INPUT-FILE.",
+            "               01  FILE-RECORD PIC X.",
+            "           WORKING-STORAGE SECTION.",
+            "               01  ROOT-RECORD.",
+            "           05 CHILD PIC X.",
+            "               77  INDEPENDENT-ITEM PIC 9.",
+            "           PROCEDURE DIVISION.",
+            "               MAIN-SECTION SECTION.",
+            "               MAIN-PARAGRAPH.",
+            "           DISPLAY 'hello'.",
+            "               NEXT-PARAGRAPH.",
+            "           GOBACK.",
+            "           END PROGRAM EXAMPLE.");
+    List<String> expected =
+        java.util.Arrays.asList(
+            "       IDENTIFICATION DIVISION.",
+            "       PROGRAM-ID. EXAMPLE.",
+            "       DATA DIVISION.",
+            "       FILE SECTION.",
+            "       FD  INPUT-FILE.",
+            "       01  FILE-RECORD PIC X.",
+            "       WORKING-STORAGE SECTION.",
+            "       01  ROOT-RECORD.",
+            "           05 CHILD PIC X.",
+            "       77  INDEPENDENT-ITEM PIC 9.",
+            "       PROCEDURE DIVISION.",
+            "       MAIN-SECTION SECTION.",
+            "       MAIN-PARAGRAPH.",
+            "           DISPLAY 'hello'.",
+            "       NEXT-PARAGRAPH.",
+            "           GOBACK.",
+            "       END PROGRAM EXAMPLE.");
+    assertEquals(expected, format(source));
+    assertEquals(expected, format(expected));
+  }
+
+  @Test
+  void whenOperandContinuesAStatement_thenItStaysInAreaB() {
+    List<String> source =
+        java.util.Arrays.asList(
+            "       PROCEDURE DIVISION.", "           MOVE SOURCE TO", "               TARGET.");
+    assertEquals(source, format(source));
+  }
+
+  @Test
+  void whenEntriesAreAlreadyWithinAreaA_thenTheirIndentationIsPreserved() {
+    List<String> source =
+        java.util.Arrays.asList(
+            "        DATA DIVISION.",
+            "         FILE SECTION.",
+            "        FD  INPUT-FILE.",
+            "          01 RECORD-A PIC X.",
+            "       WORKING-STORAGE SECTION.",
+            "         77 SCALAR PIC 9.",
+            "        PROCEDURE DIVISION.",
+            "         MAIN-SECTION SECTION.",
+            "          MAIN-PARAGRAPH.",
+            "           GOBACK.",
+            "         END PROGRAM EXAMPLE.");
+    assertEquals(source, format(source));
+  }
+
+  private static List<String> format(List<String> source) {
+    CobolDocumentModel model = new CobolDocumentModel("", String.join("\n", source));
+    return FormationEdits.apply(
+        source, new LayoutFormation().format(model.getLines(), ImmutableList.of("\"None\"")));
   }
 }

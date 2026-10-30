@@ -25,6 +25,7 @@ final class Renderer {
   private final int indent;
   private final int width;
   private final char quote;
+  private HorizontalLayout horizontal;
 
   Renderer(LayoutSettings settings, int width) {
     this.indent = settings.getIndentWidth();
@@ -69,6 +70,75 @@ final class Renderer {
     List<String> texts = new ArrayList<>();
     pieces(words, spaced).forEach(piece -> texts.add(piece.text));
     return String.join(" ", texts);
+  }
+
+  /** Learn local spacing and alignment before rendering any line. */
+  void learn(List<SourceLine> lines) {
+    horizontal = new HorizontalLayout(lines);
+  }
+
+  /**
+   * Apply learned local spacing, retaining original whitespace where the evidence is inconclusive.
+   *
+   * @param line source line with its original words
+   * @param words replacement words, in the same order
+   * @param column requested indentation
+   * @param keepIndent whether to retain the original leading whitespace
+   * @param spaced whether to separate punctuation with a space
+   * @return content or null when the changes require wrapping or a different token count
+   */
+  String applyLearnedLayout(
+      SourceLine line, List<Word> words, int column, boolean keepIndent, boolean spaced) {
+    List<Word> original = line.getWords();
+    if (words.size() != original.size()) {
+      return null;
+    }
+    String content = line.getContent();
+    int leading = line.originalIndent();
+    StringBuilder result =
+        new StringBuilder(keepIndent ? content.substring(0, leading) : indent(column));
+    int offset = leading;
+    for (int i = 0; i < words.size(); i++) {
+      Word before = original.get(i);
+      Word after = words.get(i);
+      String raw = before.getText() + before.getSeparator();
+      int at = content.indexOf(raw, offset);
+      if (at < offset) {
+        return null;
+      }
+      String gap = content.substring(offset, at);
+      if (i > 0 && after.isPunctuation()) {
+        gap = spaced ? " " : "";
+      } else {
+        int target = at - leading + (keepIndent ? leading : column);
+        if (horizontal != null) {
+          gap = horizontal.gap(line, i, result.length(), target, gap);
+        } else if (gap.length() > 1 && gap.indexOf('\t') < 0) {
+          // Keep the token's column even if quote conversion changes the preceding token's width.
+          gap = StringUtils.repeat(' ', Math.max(1, target - result.length()));
+        }
+      }
+      result.append(gap);
+      Word converted = after.withQuotes(quote);
+      result.append(converted.getText());
+      if (!converted.getSeparator().isEmpty()) {
+        if (spaced && !converted.isPunctuation()) {
+          result.append(' ');
+        }
+        result.append(converted.getSeparator());
+      }
+      offset = at + raw.length();
+    }
+    int comment = line.getComment() == null ? -1 : content.indexOf("*>", offset);
+    if (comment > offset + 1) {
+      int target = comment - leading + (keepIndent ? leading : column);
+      result.append(StringUtils.repeat(' ', Math.max(1, target - result.length())));
+      result.append(content.substring(comment));
+    } else {
+      result.append(content.substring(offset));
+    }
+    String rendered = StringUtils.stripEnd(result.toString(), null);
+    return rendered.length() <= width ? rendered : null;
   }
 
   /**

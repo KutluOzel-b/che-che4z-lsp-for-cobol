@@ -17,8 +17,12 @@ package org.eclipse.lsp.cobol.usecases;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Arrays;
+import java.util.List;
 import org.eclipse.lsp.cobol.common.AnalysisResult;
 import org.eclipse.lsp.cobol.common.dialects.CobolLanguageId;
+import org.eclipse.lsp.cobol.service.delegates.formations.layout.CobolLayoutFormatter;
+import org.eclipse.lsp.cobol.service.delegates.formations.layout.LayoutSettings;
 import org.eclipse.lsp.cobol.test.engine.UseCase;
 import org.eclipse.lsp.cobol.test.engine.UseCaseUtils;
 import org.junit.jupiter.api.Test;
@@ -158,6 +162,30 @@ class TestMarginAB {
   void checkForAreaA() {
     AnalysisResult result = UseCaseUtils.analyze(UseCase.builder().text(TEXT_AREA_A).build());
     assertEquals(5, result.getDiagnostics().get(UseCaseUtils.DOCUMENT_URI).size());
+  }
+
+  @Test
+  void formattingRemovesAreaAWarnings() {
+    String source =
+        TEXT_AREA_A.replace(
+            "        PROGA.", "             MAIN-SECTION SECTION.\n             PROGA.");
+    AnalysisResult before = UseCaseUtils.analyze(UseCase.builder().text(source).build());
+    org.junit.jupiter.api.Assertions.assertTrue(areaAWarnings(before) > 0);
+    List<String> lines = Arrays.asList(source.split("\n", -1));
+    String formatted =
+        String.join(
+            "\n", new CobolLayoutFormatter(LayoutSettings.fromJson(null, lines)).format(lines));
+    AnalysisResult after = UseCaseUtils.analyze(UseCase.builder().text(formatted).build());
+    assertEquals(0, areaAWarnings(after));
+  }
+
+  private static long areaAWarnings(AnalysisResult result) {
+    return result
+        .getDiagnostics()
+        .getOrDefault(UseCaseUtils.DOCUMENT_URI, java.util.Collections.emptyList())
+        .stream()
+        .filter(d -> d.getMessage().startsWith("The following token must start in Area A:"))
+        .count();
   }
 
   @Test

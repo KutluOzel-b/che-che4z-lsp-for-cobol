@@ -18,6 +18,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import java.util.List;
 import java.util.Locale;
 import lombok.Builder;
 import lombok.Value;
@@ -38,6 +39,16 @@ public class LayoutSettings {
     FREE
   }
 
+  /** Automatic formatting retains established horizontal layout unless explicitly overridden. */
+  @Builder.Default boolean preserveSpacing = false;
+
+  @Builder.Default boolean preserveIndentation = false;
+  @Builder.Default boolean preserveDataAlignment = false;
+  @Builder.Default boolean preserveFixedPadding = false;
+
+  /** Inferred procedure indentation; -1 uses the common indentation setting. */
+  @Builder.Default int procedureIndentWidth = -1;
+
   @Builder.Default boolean enabled = true;
   @Builder.Default SourceFormat sourceFormat = SourceFormat.FIXED;
   @Builder.Default boolean singleQuote = true;
@@ -52,32 +63,61 @@ public class LayoutSettings {
   @Builder.Default boolean preserveSequenceNumbers = true;
 
   /**
-   * Create settings from the JSON representation sent by the client. Missing or invalid values
-   * fall back to defaults.
+   * Create settings from the JSON representation sent by the client. Missing or invalid values fall
+   * back to defaults.
    *
    * @param json the {@code cobol-lsp.formatter} configuration object as JSON text, may be null
    * @return parsed settings
    */
   public static LayoutSettings fromJson(String json) {
-    LayoutSettings defaults = LayoutSettings.builder().build();
+    return fromObject(object(json), LayoutSettings.builder().build());
+  }
+
+  /**
+   * Learn unspecified or automatic options from the current document, then apply explicit settings.
+   *
+   * @param json the client configuration, may be null
+   * @param source physical lines of the document
+   * @return inferred settings with explicit overrides
+   */
+  public static LayoutSettings fromJson(String json, List<String> source) {
+    JsonObject root = object(json);
+    SourceFormat sourceFormat = format(root, LayoutStyleDetector.sourceFormat(source));
+    LayoutSettings defaults = LayoutSettings.builder().sourceFormat(sourceFormat).build();
+    return fromObject(root, LayoutStyleDetector.detect(source, defaults));
+  }
+
+  private static JsonObject object(String json) {
     if (json == null) {
-      return defaults;
+      return new JsonObject();
     }
     JsonElement element;
     try {
       element = JsonParser.parseString(json);
     } catch (RuntimeException e) {
-      return defaults;
+      return new JsonObject();
     }
-    if (!element.isJsonObject()) {
-      return defaults;
-    }
-    JsonObject root = element.getAsJsonObject();
+    return element.isJsonObject() ? element.getAsJsonObject() : new JsonObject();
+  }
+
+  private static LayoutSettings fromObject(JsonObject root, LayoutSettings defaults) {
     JsonObject data =
         root.has("dataDivision") && root.get("dataDivision").isJsonObject()
             ? root.getAsJsonObject("dataDivision")
             : new JsonObject();
     return LayoutSettings.builder()
+        .procedureIndentWidth(indent(root, -1) >= 0 ? -1 : defaults.procedureIndentWidth)
+        .preserveSpacing(defaults.preserveSpacing)
+        .preserveIndentation(
+            defaults.preserveIndentation
+                && indent(root, -1) < 0
+                && !booleanSetting(root, "useTabs"))
+        .preserveDataAlignment(
+            defaults.preserveDataAlignment
+                && !booleanSetting(data, "alignPicClauses")
+                && !booleanSetting(data, "alignValueClauses")
+                && !booleanSetting(data, "alignUsageClauses"))
+        .preserveFixedPadding(defaults.preserveFixedPadding)
         .enabled(bool(root, "enabled", defaults.enabled))
         .sourceFormat(format(root, defaults.sourceFormat))
         .singleQuote(bool(root, "singleQuote", defaults.singleQuote))
@@ -99,6 +139,11 @@ public class LayoutSettings {
   private static JsonPrimitive primitive(JsonObject object, String key) {
     JsonElement value = object.get(key);
     return value != null && value.isJsonPrimitive() ? value.getAsJsonPrimitive() : null;
+  }
+
+  private static boolean booleanSetting(JsonObject object, String key) {
+    JsonPrimitive value = primitive(object, key);
+    return value != null && value.isBoolean();
   }
 
   private static boolean bool(JsonObject object, String key, boolean fallback) {

@@ -23,6 +23,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp.cobol.service.CobolDocumentModel;
@@ -99,5 +102,77 @@ class FormationsTest {
             ImmutableList.of(
                 new TextEdit(new Range(new Position(0, 0), new Position(0, 6)), "SAMPLE"));
     assertEquals(0, formations(settings(), formation).format(model).size());
+  }
+
+  @Test
+  void whenSourceAlreadyHasPreferredLayout_thenFormattingProducesNoEdits() throws Exception {
+    String source =
+        new String(
+            Files.readAllBytes(Paths.get(getClass().getResource("/formatter/SLICKB0.cbl").toURI())),
+            StandardCharsets.UTF_8);
+    CobolDocumentModel model = new CobolDocumentModel("file:///SLICKB0.cbl", source);
+    SettingsService settings = settings(new JsonPrimitive("None"), new JsonObject());
+    assertEquals(
+        ImmutableList.of(),
+        formations(settings, new LayoutFormation(), new TrimFormation(), new CapitalFormation())
+            .format(model));
+    // Padding must also survive when trimming precedes layout in the formation chain.
+    assertEquals(
+        ImmutableList.of(),
+        formations(settings, new TrimFormation(), new LayoutFormation(), new CapitalFormation())
+            .format(model));
+  }
+
+  @Test
+  void whenOrganizationSpacingIsChanged_thenTheSurroundingStyleIsApplied() throws Exception {
+    String original =
+        new String(
+            Files.readAllBytes(Paths.get(getClass().getResource("/formatter/SLICKB0.cbl").toURI())),
+            StandardCharsets.UTF_8);
+    String changed =
+        original.replace("ORGANIZATION  IS INDEXED", "ORGANIZATION            IS       INDEXED");
+    CobolDocumentModel model = new CobolDocumentModel("file:///example.cbl", changed);
+    SettingsService settings = settings(new JsonPrimitive("None"), new JsonObject());
+    for (Formation[] order :
+        new Formation[][] {
+          {new LayoutFormation(), new TrimFormation(), new CapitalFormation()},
+          {new TrimFormation(), new LayoutFormation(), new CapitalFormation()}
+        }) {
+      List<String> result =
+          FormationEdits.apply(
+              model.getLines().stream()
+                  .map(CobolDocumentModel.Line::getText)
+                  .collect(java.util.stream.Collectors.toList()),
+              formations(settings, order).format(model));
+      assertEquals(
+          new CobolDocumentModel("", original)
+              .getLines().stream()
+                  .map(CobolDocumentModel.Line::getText)
+                  .collect(java.util.stream.Collectors.toList()),
+          result);
+      assertEquals(
+          ImmutableList.of(),
+          formations(settings, order)
+              .format(new CobolDocumentModel("", String.join("\n", result))));
+    }
+  }
+
+  @Test
+  void whenCicsSourceAlreadyHasPreferredLayout_thenFormattingProducesNoEdits() throws Exception {
+    String source =
+        new String(
+            Files.readAllBytes(
+                Paths.get(getClass().getResource("/formatter/URIMAP_CICS1.cbl").toURI())),
+            StandardCharsets.UTF_8);
+    CobolDocumentModel model = new CobolDocumentModel("file:///example.cbl", source);
+    SettingsService settings = settings(new JsonPrimitive("None"), new JsonObject());
+    assertEquals(
+        ImmutableList.of(),
+        formations(settings, new LayoutFormation(), new TrimFormation(), new CapitalFormation())
+            .format(model));
+    assertEquals(
+        ImmutableList.of(),
+        formations(settings, new TrimFormation(), new LayoutFormation(), new CapitalFormation())
+            .format(model));
   }
 }

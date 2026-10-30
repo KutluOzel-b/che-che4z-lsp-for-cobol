@@ -111,7 +111,10 @@ public final class CobolLayoutFormatter {
   public CobolLayoutFormatter(LayoutSettings settings) {
     this.settings = settings;
     this.fixed = settings.getSourceFormat() == LayoutSettings.SourceFormat.FIXED;
-    this.indent = settings.getIndentWidth();
+    this.indent =
+        settings.getProcedureIndentWidth() >= 0
+            ? settings.getProcedureIndentWidth()
+            : settings.getIndentWidth();
     this.areaB = fixed ? FIXED_AREA_B : indent;
     this.headerContinuation = Math.max(areaB, indent);
     this.renderer = new Renderer(settings, fixed ? CONTENT_END - CONTENT_START : FREE_WIDTH);
@@ -130,6 +133,9 @@ public final class CobolLayoutFormatter {
       if (lines.get(i).getKind() == SourceLine.Kind.CODE) {
         analyze(i, lines.get(i));
       }
+    }
+    if (settings.isPreserveSpacing()) {
+      renderer.learn(lines);
     }
     groups.forEach(aligner::align);
     periods();
@@ -459,8 +465,7 @@ public final class CobolLayoutFormatter {
     if ("END".equals(first) && "DECLARATIVES".equals(second)) {
       return 2;
     }
-    boolean areaA = fixed ? line.originalIndent() < FIXED_AREA_B : !sentenceOpen;
-    if (!areaA || words.get(0).isLiteral() || !Keywords.isUserWord(first)) {
+    if (words.get(0).isLiteral() || !Keywords.isUserWord(first)) {
       return 0;
     }
     if ("SECTION".equals(second) && words.get(0).getSeparator().isEmpty()) {
@@ -471,7 +476,8 @@ public final class CobolLayoutFormatter {
       }
       return words.size();
     }
-    return words.get(0).endsWithPeriod() ? 1 : 0;
+    boolean paragraphStart = !sentenceOpen || (fixed && line.originalIndent() < FIXED_AREA_B);
+    return paragraphStart && words.get(0).endsWithPeriod() ? 1 : 0;
   }
 
   /** Check whether the first word of the line continues the previous statement. */
@@ -883,6 +889,23 @@ public final class CobolLayoutFormatter {
         break;
       case ENTRY:
         contents = line.getRendered();
+        if (settings.isPreserveDataAlignment() && !line.isFrozen()) {
+          int column =
+              contents == null || contents.isEmpty()
+                  ? line.originalIndent()
+                  : StringUtils.indexOfAnyBut(contents.get(0), ' ', '\t');
+          boolean keepIndent = keepIndent(line, Math.max(0, column));
+          String preserved =
+              renderer.applyLearnedLayout(
+                  line,
+                  line.getWords(),
+                  Math.max(0, column),
+                  keepIndent,
+                  settings.isSpaceBeforePunctuation());
+          if (preserved != null) {
+            contents = Collections.singletonList(preserved);
+          }
+        }
         break;
       case SHIFT:
         contents = Collections.singletonList(shifted(line));
@@ -913,6 +936,14 @@ public final class CobolLayoutFormatter {
       }
     }
     boolean spaced = settings.isSpaceBeforePunctuation() && !line.isHeader();
+    if (settings.isPreserveSpacing() && !line.isSplitPeriod()) {
+      String preserved =
+          renderer.applyLearnedLayout(
+              line, words, line.getColumn(), keepIndent(line, line.getColumn()), spaced);
+      if (preserved != null) {
+        return new ArrayList<>(Collections.singletonList(preserved));
+      }
+    }
     List<String> contents =
         renderer.layout(
             line.getColumn(),
@@ -953,6 +984,9 @@ public final class CobolLayoutFormatter {
     String content = StringUtils.stripEnd(line.getContent(), null);
     int current = line.originalIndent();
     int target = Math.max(0, current + line.getShift());
+    if (keepIndent(line, target)) {
+      return content;
+    }
     if (fixed && !line.isHeader() && current >= FIXED_AREA_B) {
       target = Math.max(target, FIXED_AREA_B);
     }
@@ -961,6 +995,33 @@ public final class CobolLayoutFormatter {
       return content;
     }
     return renderer.indent(target) + text;
+  }
+
+  /** Retain established indentation and hanging continuations when indentation is automatic. */
+  private boolean keepIndent(SourceLine line, int column) {
+    if (!settings.isPreserveIndentation()) {
+      return false;
+    }
+    int original = line.originalIndent();
+    if (line.isHeader()) {
+      return fixed && original < FIXED_AREA_B;
+    }
+    if (fixed && line.getMode() == SourceLine.Mode.ENTRY) {
+      int level = Keywords.levelNumber(line.getWords().get(0));
+      if (level == 1
+          || level == Keywords.LEVEL_INDEPENDENT
+          || Keywords.FILE_DESCRIPTIONS.contains(line.upper(0))) {
+        // Required Area A placement takes precedence over inferred indentation preferences.
+        return original < FIXED_AREA_B;
+      }
+    }
+    if (original < Math.min(column, areaB)) {
+      return false;
+    }
+    return original == column
+        || startsContinuation(line)
+        || line.getContent().substring(0, original).indexOf('\t') >= 0
+        || (indent > 0 && (original - Math.min(column, areaB)) % indent == 0);
   }
 
   private String compose(SourceLine line, String content, boolean first) {
@@ -974,6 +1035,10 @@ public final class CobolLayoutFormatter {
             ? StringUtils.rightPad(line.getSequence(), SEQUENCE_LENGTH)
             : BLANK_SEQUENCE;
     String identification = preserve && first ? line.getIdentification() : "";
+    if (preserve && settings.isPreserveFixedPadding() && identification.trim().isEmpty()) {
+      // Editing internal spaces can push blank record padding past column 80 or remove it entirely.
+      identification = StringUtils.repeat(' ', 8);
+    }
     if (!identification.isEmpty()) {
       return sequence
           + line.getIndicator()

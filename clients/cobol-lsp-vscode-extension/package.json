@@ -498,53 +498,76 @@
         },
         "cobol-lsp.formatter.sourceFormat": {
           "type": "string",
-          "default": "fixed",
+          "default": "auto",
           "enum": [
+            "auto",
             "fixed",
             "free"
           ],
           "enumDescriptions": [
+            "Detect the reference format from source directives and the document layout.",
             "Fixed reference format: sequence area in columns 1-6, indicator in column 7, Area A from column 8, Area B from column 12 to 72.",
             "Free format: code can start in any column."
           ],
-          "description": "Reference format of the source code."
+          "description": "Reference format of the source code. Detected automatically by default."
         },
         "cobol-lsp.formatter.singleQuote": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Delimit alphanumeric and national literals with single quotes (`'`). When disabled, double quotes (`\"`) are used. Literals in EXEC blocks, COPY and REPLACE statements and continued literals are not changed."
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "Delimit alphanumeric and national literals with single quotes (`'`). When disabled, double quotes (`\"`) are used. Literals in EXEC blocks, COPY and REPLACE statements and continued literals are not changed. Set to null (the default) to detect the style from the document."
         },
         "cobol-lsp.formatter.indentWidth": {
-          "type": "integer",
-          "default": 4,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null,
           "minimum": 0,
           "maximum": 16,
-          "description": "Number of columns to indent nested statements and subordinate data items by."
+          "description": "Number of columns to indent nested statements and subordinate data items by. Set to null (the default) to detect the style from the document."
         },
         "cobol-lsp.formatter.useTabs": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Indent with tab characters instead of spaces. Only applies to the `free` source format; the fixed format always uses spaces because columns are significant."
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "Indent with tab characters instead of spaces. Only applies to the `free` source format; the fixed format always uses spaces because columns are significant. Set to null (the default) to detect the style from the document."
         },
         "cobol-lsp.formatter.dataDivision.alignPicClauses": {
-          "type": "boolean",
-          "default": true,
-          "description": "Align the PICTURE clauses of the data description entries of a record."
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "description": "Align the PICTURE clauses of the data description entries of a record. Set to null (the default) to detect the style from the document."
         },
         "cobol-lsp.formatter.dataDivision.alignValueClauses": {
-          "type": "boolean",
-          "default": true,
-          "description": "Align the VALUE clauses of the data description entries of a record."
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "description": "Align the VALUE clauses of the data description entries of a record. Set to null (the default) to detect the style from the document."
         },
         "cobol-lsp.formatter.dataDivision.alignUsageClauses": {
-          "type": "boolean",
-          "default": true,
-          "description": "Align the USAGE clauses (USAGE, COMP, COMP-3, BINARY, ...) of the data description entries of a record."
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "description": "Align the USAGE clauses (USAGE, COMP, COMP-3, BINARY, ...) of the data description entries of a record. Set to null (the default) to detect the style from the document."
         },
         "cobol-lsp.formatter.standalonePeriods": {
-          "type": "boolean",
-          "default": false,
-          "description": "Move the periods terminating the sentences of the procedure division to their own line. When disabled, a period standing alone on a line is joined to the previous statement."
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "description": "Move the periods terminating the sentences of the procedure division to their own line. When disabled, a period standing alone on a line is joined to the previous statement. Set to null (the default) to detect the style from the document."
         },
         "cobol-lsp.formatter.requireScopeTerminators": {
           "type": "boolean",
@@ -552,9 +575,12 @@
           "description": "Reserved for inserting explicit scope terminators (like END-IF). Not applied yet."
         },
         "cobol-lsp.formatter.spaceBeforePunctuation": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Put a space before separator commas, semicolons and periods, e.g. `MOVE A TO B , C .` instead of `MOVE A TO B, C.`"
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "Put a space before separator commas, semicolons and periods, e.g. `MOVE A TO B , C .` instead of `MOVE A TO B, C.` Set to null (the default) to detect the style from the document."
         },
         "cobol-lsp.formatter.preserveSequenceNumbers": {
           "type": "boolean",

@@ -17,8 +17,10 @@ package org.eclipse.lsp.cobol.service.delegates.formations;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 import org.eclipse.lsp.cobol.service.CobolDocumentModel;
+import org.eclipse.lsp.cobol.service.delegates.formations.layout.LayoutSettings;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextEdit;
@@ -36,8 +38,22 @@ public class TrimFormation implements Formation {
   public List<TextEdit> format(
       @NonNull List<CobolDocumentModel.Line> lines, List<String> settings) {
     List<TextEdit> formattedText = new ArrayList<>();
+    String json =
+        settings != null && settings.size() > LayoutFormation.SETTINGS_INDEX
+            ? settings.get(LayoutFormation.SETTINGS_INDEX)
+            : null;
+    LayoutSettings layout =
+        LayoutSettings.fromJson(
+            json,
+            lines.stream().map(CobolDocumentModel.Line::getText).collect(Collectors.toList()));
     for (int i = 0; i < lines.size(); i++) {
       CobolDocumentModel.Line line = lines.get(i);
+      if (layout.isEnabled()
+          && layout.isPreserveFixedPadding()
+          && layout.isPreserveSequenceNumbers()
+          && line.getText().length() == 80) {
+        continue;
+      }
       // trailing spaces of a literal continued on the next line are part of the literal
       if (i + 1 < lines.size() && isContinuationLine(lines.get(i + 1).getText())) {
         continue;

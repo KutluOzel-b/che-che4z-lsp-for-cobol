@@ -127,7 +127,8 @@ class CobolLayoutFormatterTest {
             .useTabs(true)
             .build();
     assertEquals(
-        ImmutableList.of("PROCEDURE DIVISION.", "MAIN.", "\tIF A = 1", "\t\tDISPLAY A", "\tEND-IF."),
+        ImmutableList.of(
+            "PROCEDURE DIVISION.", "MAIN.", "\tIF A = 1", "\t\tDISPLAY A", "\tEND-IF."),
         format(settings, "PROCEDURE DIVISION.", "MAIN.", "IF A = 1", "DISPLAY A", "END-IF."));
   }
 
@@ -290,7 +291,7 @@ class CobolLayoutFormatterTest {
   }
 
   @Test
-  void whenParagraphIsInAreaB_thenItIsNotMovedToAreaA() {
+  void whenOperandContinuesAStatement_thenItStaysInAreaB() {
     // a word in Area B is a continuation of the previous statement, not a paragraph name
     List<String> result =
         format("       PROCEDURE DIVISION.", "           MOVE A TO", "               B.");

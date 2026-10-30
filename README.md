@@ -138,21 +138,27 @@ The following example sets tab stops after columns 1, 2, 3 and 4 after the line 
 
 Use **Format Document** (`Shift+Alt+F`) to lay out a COBOL program. The formatter moves division, section and paragraph headers to Area A, indents nested statements (`IF`, `EVALUATE`, inline `PERFORM`, `AT END` and similar phrases) and subordinate data items, aligns data description clauses and normalizes the spacing and the quotes of literals. It does not change the meaning of the program: continued literals, compiler directives and the content of `EXEC` blocks, `COPY` and `REPLACE` statements are kept as they are, and a line which no longer fits before column 73 is wrapped or kept unchanged.
 
+The formatter learns the style of the current document each time you format it. It detects the reference format (including `>>SOURCE FORMAT` directives), indentation width, tabs, quote preference, clause alignment, standalone periods and spaces before punctuation. Comments, continued literals and embedded blocks do not contribute style samples. Preferences use the majority of observations; ties or missing evidence use the original defaults (fixed format, four spaces, single quotes, aligned clauses and attached punctuation). Sequence and identification areas are preserved by default.
+
+Automatic formatting learns spacing and the columns of `IS`, `TO` and data clauses from comparable statements in each SELECT block, record or paragraph. At least two observations and a strict majority are required to correct a spacing outlier; ambiguous layouts are retained. SELECT blocks can use the containing section as a fallback. Comparisons stay within a nesting level and groups separated by blank lines; one-column variations in already padded alignment are retained. Data and procedure indentation are inferred separately; an explicit `indentWidth` overrides both. Hanging continuations and existing indentation on the detected indentation grid are preserved. It also retains the padding of fixed-format files predominantly stored as 80-column records. Statements incorrectly starting in Area A are still moved into Area B. Required fixed-format Area A placement (division and section headers, paragraph labels, file descriptions and level `01`/`77` entries) takes precedence over inferred indentation; valid positions within Area A are retained. Explicit indentation and data-alignment settings override the corresponding automatic preservation.
+
+No setup is required and detected preferences are not saved to your settings. To override a preference, set an explicit value below. Set it back to `null` (or `auto` for `sourceFormat`) to resume detection. Existing explicit settings continue to take precedence.
+
 Configure the formatter with the following settings:
 
 | Setting | Default | Description |
 | --- | --- | --- |
 | `cobol-lsp.formatter.enabled` | `true` | Lay out the code. When disabled, formatting only removes trailing spaces and applies `cobol-lsp.formatting`. |
-| `cobol-lsp.formatter.sourceFormat` | `fixed` | `fixed` or `free` reference format. |
-| `cobol-lsp.formatter.singleQuote` | `true` | Delimit literals with `'`. When `false`, `"` is used. |
-| `cobol-lsp.formatter.indentWidth` | `4` | Number of columns per nesting level. |
-| `cobol-lsp.formatter.useTabs` | `false` | Indent with tabs. Only applies to the `free` format. |
-| `cobol-lsp.formatter.dataDivision.alignPicClauses` | `true` | Align the `PICTURE` clauses of a record. |
-| `cobol-lsp.formatter.dataDivision.alignValueClauses` | `true` | Align the `VALUE` clauses of a record. |
-| `cobol-lsp.formatter.dataDivision.alignUsageClauses` | `true` | Align the `USAGE` clauses (`COMP`, `COMP-3`, `BINARY`, ...) of a record. |
-| `cobol-lsp.formatter.standalonePeriods` | `false` | Move the periods ending procedure division sentences to their own line. |
+| `cobol-lsp.formatter.sourceFormat` | `auto` | `fixed` or `free` reference format. |
+| `cobol-lsp.formatter.singleQuote` | `null` (detect) | Delimit literals with `'`. When `false`, `"` is used. |
+| `cobol-lsp.formatter.indentWidth` | `null` (detect) | Number of columns per nesting level. |
+| `cobol-lsp.formatter.useTabs` | `null` (detect) | Indent with tabs. Only applies to the `free` format. |
+| `cobol-lsp.formatter.dataDivision.alignPicClauses` | `null` (detect) | Align the `PICTURE` clauses of a record. |
+| `cobol-lsp.formatter.dataDivision.alignValueClauses` | `null` (detect) | Align the `VALUE` clauses of a record. |
+| `cobol-lsp.formatter.dataDivision.alignUsageClauses` | `null` (detect) | Align the `USAGE` clauses (`COMP`, `COMP-3`, `BINARY`, ...) of a record. |
+| `cobol-lsp.formatter.standalonePeriods` | `null` (detect) | Move the periods ending procedure division sentences to their own line. |
 | `cobol-lsp.formatter.requireScopeTerminators` | `false` | Reserved, not applied yet. |
-| `cobol-lsp.formatter.spaceBeforePunctuation` | `false` | Write `MOVE A TO B , C .` instead of `MOVE A TO B, C.` |
+| `cobol-lsp.formatter.spaceBeforePunctuation` | `null` (detect) | Write `MOVE A TO B , C .` instead of `MOVE A TO B, C.` |
 | `cobol-lsp.formatter.preserveSequenceNumbers` | `true` | Keep columns 1-6 and 73-80. When `false`, both areas are cleared. |
 
 ### Configure Dialect Add-ons

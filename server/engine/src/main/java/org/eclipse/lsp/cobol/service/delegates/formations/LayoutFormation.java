@@ -35,12 +35,12 @@ public class LayoutFormation implements Formation {
   public List<TextEdit> format(
       @NonNull List<CobolDocumentModel.Line> lines, @NonNull List<String> settings) {
     String json = settings.size() > SETTINGS_INDEX ? settings.get(SETTINGS_INDEX) : null;
-    LayoutSettings layoutSettings = LayoutSettings.fromJson(json);
+    List<String> before =
+        lines.stream().map(CobolDocumentModel.Line::getText).collect(Collectors.toList());
+    LayoutSettings layoutSettings = LayoutSettings.fromJson(json, before);
     if (!layoutSettings.isEnabled()) {
       return Collections.emptyList();
     }
-    List<String> before =
-        lines.stream().map(CobolDocumentModel.Line::getText).collect(Collectors.toList());
     List<String> after = new CobolLayoutFormatter(layoutSettings).format(before);
     return FormationEdits.diff(before, after);
   }
