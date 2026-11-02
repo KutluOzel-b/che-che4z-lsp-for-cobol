@@ -59,7 +59,13 @@ final class HorizontalLayout {
   }
 
   /** Choose a learned column first, then a learned gap; leave ambiguous spacing unchanged. */
-  String gap(SourceLine line, int word, int renderedEnd, int fallbackColumn, String fallback) {
+  String gap(
+      SourceLine line,
+      int word,
+      int renderedEnd,
+      int wordWidth,
+      int fallbackColumn,
+      String fallback) {
     Profile profile = profiles.get(line);
     if (profile == null || word == 0 || fallback.indexOf('\t') >= 0) {
       return fallback;
@@ -73,8 +79,15 @@ final class HorizontalLayout {
     if (column != null && column > renderedEnd) {
       return spaces(column - renderedEnd);
     }
+    String key = indentation + gapKey(line, word);
+    if (anchor == null && followingClause(line, word) != null) {
+      Integer end = profile.operandEnd(key, renderedEnd);
+      if (end != null && end - wordWidth > renderedEnd) {
+        return spaces(end - wordWidth - renderedEnd);
+      }
+    }
     // Without a reliable column, padded clause boundaries are not ordinary operand gaps.
-    Integer gap = anchor == null ? profile.gap(indentation + gapKey(line, word)) : null;
+    Integer gap = anchor == null ? profile.gap(key) : null;
     if (gap != null) {
       return spaces(gap);
     }
@@ -106,7 +119,12 @@ final class HorizontalLayout {
         if (anchor != null) {
           profile.observeColumn(indentation + anchor, column, offset, column - offset);
         } else {
-          profile.observeGap(indentation + gapKey(line, i), column - offset);
+          String key = indentation + gapKey(line, i);
+          profile.observeGap(key, column - offset);
+          if (anchor(line, i - 1) != null && followingClause(line, i) != null) {
+            profile.observeOperandEnd(
+                key, offset, column + word.getText().length(), word.getText().length());
+          }
         }
       }
       offset = column + word.getText().length() + word.getSeparator().length();
@@ -139,9 +157,23 @@ final class HorizontalLayout {
   private static String gapKey(SourceLine line, int index) {
     String previous = anchor(line, index - 1);
     if (previous != null) {
-      return "AFTER:" + previous;
+      String next = followingClause(line, index);
+      return "AFTER:" + previous + (next == null ? "" : ":BEFORE:" + next);
     }
     return line.upper(0) + ":" + index;
+  }
+
+  /** Keep operand spacing separate when another data clause follows it. */
+  private static String followingClause(SourceLine line, int index) {
+    if (line.getMode() != SourceLine.Mode.ENTRY || index + 1 >= line.getWords().size()) {
+      return null;
+    }
+    Word next = line.getWords().get(index + 1);
+    if (next.isLiteral() || !Keywords.isDataClause(next.upper())) {
+      return null;
+    }
+    String nextAnchor = anchor(line, index + 1);
+    return nextAnchor == null ? next.upper() : nextAnchor;
   }
 
   private static final class Profile {
@@ -149,6 +181,7 @@ final class HorizontalLayout {
     private final Profile clauseGaps;
     private final Map<String, Column> columns = new HashMap<>();
     private final Map<String, Votes> gaps = new HashMap<>();
+    private final Map<String, Column> operandEnds = new HashMap<>();
 
     private Profile(Profile parent) {
       this(parent, null);
@@ -174,6 +207,32 @@ final class HorizontalLayout {
       if (clauseGaps != null && key.contains(":AFTER:")) {
         clauseGaps.observeGap(key, gap);
       }
+    }
+
+    private void observeOperandEnd(String key, int clauseEnd, int end, int width) {
+      // Different operand widths must support the same right edge before it is an alignment rule.
+      operandEnds
+          .computeIfAbsent(key + ":" + clauseEnd, ignored -> new Column())
+          .add(end, width, 0);
+      if (parent != null) {
+        parent.observeOperandEnd(key, clauseEnd, end, width);
+      }
+      if (clauseGaps != null) {
+        clauseGaps.observeOperandEnd(key, clauseEnd, end, width);
+      }
+    }
+
+    private Integer operandEnd(String key, int clauseEnd) {
+      Column column = operandEnds.get(key + ":" + clauseEnd);
+      Integer value = column == null ? null : column.preferred();
+      Votes localGaps = gaps.get(key);
+      if (value != null || (localGaps != null && localGaps.preferred() != null)) {
+        return value;
+      }
+      if (parent != null) {
+        return parent.operandEnd(key, clauseEnd);
+      }
+      return clauseGaps == null ? null : clauseGaps.operandEnd(key, clauseEnd);
     }
 
     private Integer column(String key) {

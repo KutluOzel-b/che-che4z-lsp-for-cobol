@@ -101,6 +101,7 @@ final class Renderer {
     for (int i = 0; i < words.size(); i++) {
       Word before = original.get(i);
       Word after = words.get(i);
+      Word converted = after.withQuotes(quote);
       String raw = before.getText() + before.getSeparator();
       int at = content.indexOf(raw, offset);
       if (at < offset) {
@@ -112,14 +113,13 @@ final class Renderer {
       } else {
         int target = at - leading + (keepIndent ? leading : column);
         if (horizontal != null) {
-          gap = horizontal.gap(line, i, result.length(), target, gap);
+          gap = horizontal.gap(line, i, result.length(), converted.getText().length(), target, gap);
         } else if (gap.length() > 1 && gap.indexOf('\t') < 0) {
           // Keep the token's column even if quote conversion changes the preceding token's width.
           gap = StringUtils.repeat(' ', Math.max(1, target - result.length()));
         }
       }
       result.append(gap);
-      Word converted = after.withQuotes(quote);
       result.append(converted.getText());
       if (!converted.getSeparator().isEmpty()) {
         if (spaced && !converted.isPunctuation()) {

@@ -435,6 +435,94 @@ class LayoutStyleDetectorTest {
   }
 
   @Test
+  void keepsRightAlignedValuesBeforeFollowingClauses() {
+    List<String> source =
+        Arrays.asList(
+            "       DATA DIVISION.",
+            "       WORKING-STORAGE SECTION.",
+            "       01  CURRENT-ABS PIC S9(15) VALUE ZEROES COMP-3.",
+            "       01  TWELVE      PIC S9(08) VALUE     12 COMP.",
+            "       01  TEN         PIC S9(08) VALUE     10 COMP.",
+            "       01  SEVEN       PIC S9(08) VALUE      7 COMP.",
+            "       01  TWO         PIC S9(08) VALUE      2 COMP.",
+            "       01  ONE         PIC S9(08) VALUE      1 COMP.",
+            "       01  FIVE-TWELVE PIC S9(08) VALUE    512 COMP.",
+            "       01  A PIC X VALUE SPACE.",
+            "       01  B PIC X VALUE SPACE.",
+            "       01  C PIC X VALUE SPACE.");
+    List<String> once =
+        new CobolLayoutFormatter(LayoutSettings.fromJson(null, source)).format(source);
+    assertEquals(source, once);
+    List<String> changed = new java.util.ArrayList<>(source);
+    changed.set(3, source.get(3).replace("VALUE     12", "VALUE 12"));
+    changed.set(8, source.get(8).replace("VALUE    512", "VALUE         512"));
+    assertEquals(
+        source, new CobolLayoutFormatter(LayoutSettings.fromJson(null, changed)).format(changed));
+    assertEquals(once, new CobolLayoutFormatter(LayoutSettings.fromJson(null, once)).format(once));
+  }
+
+  @Test
+  void keepsRightAlignedPicturesBeforeValueClauses() {
+    List<String> source =
+        Arrays.asList(
+            "       DATA DIVISION.",
+            "       WORKING-STORAGE SECTION.",
+            "       01  A PIC  X(01) VALUE SPACE.",
+            "       01  B PIC X(160) VALUE SPACES.",
+            "       01  C PIC  X(02) VALUE SPACE.",
+            "       01  D PIC  9(15) VALUE ZEROES.",
+            "       01  E PIC S9(08) COMP VALUE 0.",
+            "       01  F PIC S9(08) COMP VALUE 1.",
+            "       01  G PIC S9(08) COMP VALUE 2.");
+    assertEquals(
+        source, new CobolLayoutFormatter(LayoutSettings.fromJson(null, source)).format(source));
+  }
+
+  @Test
+  void quoteOverridesKeepRightAlignedOperandsBeforeOtherDataClauses() {
+    List<String> source =
+        Arrays.asList(
+            "       DATA DIVISION.",
+            "       WORKING-STORAGE SECTION.",
+            "       01 A PIC X(8) VALUE      'a' JUSTIFIED.",
+            "       01 B PIC X(8) VALUE     'bb' JUSTIFIED.",
+            "       01 C PIC X(8) VALUE   'cccc' JUSTIFIED.",
+            "       01 D PIC X(8) VALUE    'a\"b' JUSTIFIED.");
+    String options = "{\"singleQuote\":false}";
+    List<String> formatted =
+        new CobolLayoutFormatter(LayoutSettings.fromJson(options, source)).format(source);
+    assertTrue(formatted.get(5).contains("VALUE   \"a\"\"b\" JUSTIFIED."));
+    for (int i = 2; i < source.size(); i++) {
+      assertEquals(source.get(i).indexOf("JUSTIFIED"), formatted.get(i).indexOf("JUSTIFIED"));
+    }
+    assertEquals(
+        formatted,
+        new CobolLayoutFormatter(LayoutSettings.fromJson(options, formatted)).format(formatted));
+  }
+
+  @Test
+  void rightAlignmentDoesNotOverrideLocalSpacingOrDifferentClauseColumns() {
+    List<String> source =
+        Arrays.asList(
+            "       DATA DIVISION.",
+            "       WORKING-STORAGE SECTION.",
+            "       01  ONE PIC 9(3) VALUE   1 COMP.",
+            "       01  TEN PIC 9(3) VALUE  10 COMP.",
+            "       01  MAX PIC 9(3) VALUE 999 COMP.",
+            "       01  REC.",
+            "           05 A PIC 9(3) VALUE   1 COMP.",
+            "           05 B PIC 9(3) VALUE  10 COMP.",
+            "           05 C PIC 9(3) VALUE 999 COMP.",
+            "       01  OTHER-REC.",
+            "           05 A PIC 9(3) VALUE 1 COMP.",
+            "           05 B PIC 9(3) VALUE 10 COMP.",
+            "           05 C PIC 9(3) VALUE 999 COMP.",
+            "       01  ALTERNATIVE-COLUMN PIC 9(3) VALUE   1 COMP.");
+    assertEquals(
+        source, new CobolLayoutFormatter(LayoutSettings.fromJson(null, source)).format(source));
+  }
+
+  @Test
   void differentRecordsKeepTheirOwnPictureColumns() {
     List<String> source =
         Arrays.asList(

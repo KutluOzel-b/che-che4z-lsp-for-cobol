@@ -175,4 +175,39 @@ class FormationsTest {
         formations(settings, new TrimFormation(), new LayoutFormation(), new CapitalFormation())
             .format(model));
   }
+
+  @Test
+  void whenCicsSourceHasRightAlignedOperands_thenTheirPaddingIsPreserved() throws Exception {
+    String source =
+        new String(
+            Files.readAllBytes(
+                Paths.get(getClass().getResource("/formatter/URIMAP_CICS3.cbl").toURI())),
+            StandardCharsets.UTF_8);
+    // COPY statements still receive the formatter's usual Area B indentation.
+    String expected = source.replace("       COPY ZECS", "           COPY ZECS");
+    SettingsService settings = settings(new JsonPrimitive("None"), new JsonObject());
+    for (Formation[] order :
+        new Formation[][] {
+          {new LayoutFormation(), new TrimFormation(), new CapitalFormation()},
+          {new TrimFormation(), new LayoutFormation(), new CapitalFormation()}
+        }) {
+      CobolDocumentModel model = new CobolDocumentModel("", source);
+      List<String> result =
+          FormationEdits.apply(
+              model.getLines().stream()
+                  .map(CobolDocumentModel.Line::getText)
+                  .collect(java.util.stream.Collectors.toList()),
+              formations(settings, order).format(model));
+      assertEquals(
+          new CobolDocumentModel("", expected)
+              .getLines().stream()
+                  .map(CobolDocumentModel.Line::getText)
+                  .collect(java.util.stream.Collectors.toList()),
+          result);
+      assertEquals(
+          ImmutableList.of(),
+          formations(settings, order)
+              .format(new CobolDocumentModel("", String.join("\n", result))));
+    }
+  }
 }
